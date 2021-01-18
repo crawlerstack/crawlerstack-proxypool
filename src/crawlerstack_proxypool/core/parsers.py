@@ -35,7 +35,7 @@ class BaseParser:  # pylint: disable=too-few-public-methods
         # use log: self.spider.logger
         self.spider = spider
 
-    def parse(self, *, response: Response, **kwargs) -> List[str]:
+    def parse(self, *, response: Response, **kwargs) -> List[str]:  # pragma: no cover
         """
         Use parse rule to parse response and return ip.
         :param response:

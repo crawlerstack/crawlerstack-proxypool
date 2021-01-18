@@ -9,6 +9,8 @@ redis = "*"
 scrapy = "*"
 stevedore = "*"
 pydantic = "*"
+scrapy-splash = "*"
+fake-useragent = "*"
 
 [dev-packages]
 isort = "*"

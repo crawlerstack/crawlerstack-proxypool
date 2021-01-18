@@ -7,7 +7,8 @@ from scrapy.http import Response
 
 from crawlerstack_proxypool.core.parsers import (BaseParser, HtmlParser,
                                                  JsonParser, TextParser)
-from tests.conftest import ExpectValueType, RuleType, TextType, test_data_dir
+from tests.conftest import (ExpectValueType, RuleType, TextType,
+                            proxy_div_html, proxy_table_html, test_data_dir)
 
 
 def _test_parse(
@@ -116,11 +117,11 @@ class TestHtmlParser(BaseTestParse):
     parser_kls = HtmlParser
     parser_data = [
         {
-            'text': test_data_dir / 'proxy_table.html',
+            'text': proxy_table_html,
             'expect_value': ['127.0.0.1:1080']
         },
         {
-            'text': test_data_dir / 'proxy_div.html',
+            'text': proxy_div_html,
             'rule': {
                 'row_start': 0,
                 'row_end': -1,
@@ -132,6 +133,6 @@ class TestHtmlParser(BaseTestParse):
     ]
     parser_error_data = [
         {
-            'text': test_data_dir / 'proxy_table.html',
+            'text': proxy_table_html,
         },
     ]
