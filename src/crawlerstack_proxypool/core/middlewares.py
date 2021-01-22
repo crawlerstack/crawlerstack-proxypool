@@ -9,25 +9,26 @@ from scrapy.exceptions import NotConfigured
 from crawlerstack_proxypool.core.base import BaseSpider
 
 
-class UserAgentMiddleware(object):
+class UserAgentMiddleware:  # pylint: disable=too-few-public-methods
     """Add random ua to request."""
 
     def __init__(self):
-        self.ua = UserAgent()
+        self.user_agent = UserAgent()
 
     def process_request(self, request, spider):
         """Add ua"""
-        ua = self.ua.random
-        spider.logger.debug(f'{request.url} ua: {ua}')
-        request.headers.setdefault(b'User-Agent', ua)
+        user_agent = self.user_agent.random
+        spider.logger.debug(f'{request.url} ua: {user_agent}')
+        request.headers.setdefault(b'User-Agent', user_agent)
 
 
-class ProxyMiddleware(object):
+class ProxyMiddleware:
     """Add proxy to request."""
     gfw_proxy: str = None
 
     @classmethod
     def from_crawler(cls, crawler):
+        """Init obj from crawler"""
         obj = cls()
         if not crawler.settings.get('GFW_PROXY'):
             raise NotConfigured('GFW_PROXY not config!')
@@ -68,19 +69,25 @@ class ProxyMiddleware(object):
             spider.logger.debug(debug_info)
 
 
-class RequestProfileMiddleware(object):
+class RequestProfileMiddleware:
     """This middleware calculates the ip's speed"""
 
-    def process_request(self, request, spider):
+    def process_request(self, request, spider):  # pylint: disable=no-self-use
+        """Process request"""
+        del spider  # no use
         request.meta['start'] = time.time()
 
-    def process_response(self, request, response, spider):
+    def process_response(self, request, response, spider):  # pylint: disable=no-self-use
+        """Process response"""
+        del spider  # no use
         end = time.time()
         speed = end - request.meta['start']
         request.meta['speed'] = int(speed * 1000)
         return response
 
-    def process_exception(self, request, exception, spider):
+    def process_exception(self, request, exception, spider):  # pylint: disable=no-self-use
+        """Process exception"""
+        del exception, spider  # no use
         end = time.time()
         speed = end - request.meta['start']
         request.meta['speed'] = int(speed * 1000)

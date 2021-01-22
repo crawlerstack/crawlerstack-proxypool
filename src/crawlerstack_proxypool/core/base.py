@@ -9,10 +9,10 @@ from stevedore import DriverManager
 
 from crawlerstack_proxypool.core.items import ProxyUrlItem
 from crawlerstack_proxypool.core.parsers import BaseParser
+from crawlerstack_proxypool.core.queue_name import RawIPQueueName
 from crawlerstack_proxypool.core.schemas import (BaseTaskSchema,
                                                  SpiderTaskSchema)
 from crawlerstack_proxypool.core.spiders import RedisSpider
-from crawlerstack_proxypool.utils.constants import QUEUE_PREFIX
 
 
 class BaseSpider(RedisSpider):
@@ -21,13 +21,10 @@ class BaseSpider(RedisSpider):
     plugin_namespace: str = None
     TASK_SCHEMA: Type[BaseTaskSchema]
 
-    def __init__(self, name=None, **kwargs):
-        self.task: Optional[BaseTaskSchema] = None
-        super().__init__(name, **kwargs)
-
-        self.logger.info(f'Init spider: {name}.')
+    task: Optional[BaseTaskSchema] = None
 
     def _set_crawler(self, crawler: Crawler) -> None:
+        """set crawler"""
         super()._set_crawler(crawler)
         self.setup_task()
         self.setup_plugin()
@@ -56,6 +53,7 @@ class BaseSpider(RedisSpider):
                 invoke_on_load=True,
                 invoke_kwds={'spider': self}
             ).driver
+        return None
 
 
 class BaseParserSpider(BaseSpider):
@@ -65,7 +63,7 @@ class BaseParserSpider(BaseSpider):
     plugin_namespace = 'crawlerstack_proxypool.spider.parsers_driver'
     TASK_KEY = 'SPIDER_TASKS'
     parser: BaseParser = None
-
+    task: SpiderTaskSchema = None
     TASK_SCHEMA: Type[SpiderTaskSchema] = SpiderTaskSchema
 
     def setup_plugin(self) -> None:
@@ -82,17 +80,17 @@ class BaseParserSpider(BaseSpider):
             self.logger.error(ex)
 
 
-class BaseProxyIPSpider(BaseParserSpider):
+class BaseRawIPSpider(BaseParserSpider):
     """
     聚合功能，从 Redis 中获取数据
     """
 
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.redis_key = f'{QUEUE_PREFIX}:spider:{name}:seed'
+        self.redis_key = RawIPQueueName(self.name).seed
 
 
-class BaseAjaxSpider(BaseProxyIPSpider):
+class BaseAjaxSpider(BaseRawIPSpider):
     """Use splash access page"""
 
     def make_request_from_url(self, url: str) -> Request:
@@ -100,7 +98,7 @@ class BaseAjaxSpider(BaseProxyIPSpider):
         return SplashRequest(url, dont_filter=True, args={'wait': 0.5, 'timeout': 10})
 
 
-class BaseGfwSpider(BaseProxyIPSpider):
+class BaseGfwSpider(BaseRawIPSpider):
     """
     Gfw spider
     Use ProxyMiddleware set gfw proxy to access gfw page
@@ -108,5 +106,5 @@ class BaseGfwSpider(BaseProxyIPSpider):
     gfw = True
 
 
-class BaseGfwAjaxSpider(BaseGfwSpider, BaseAjaxSpider):
+class BaseGfwAjaxSpider(BaseGfwSpider, BaseAjaxSpider):  # pylint: disable=too-many-ancestors
     """Gfw and ajax"""

@@ -31,10 +31,10 @@ class TestProxyMiddleware:
         """mw fixture"""
         yield self.mw_kls.from_crawler(crawler)
 
-    def test_from_crawler(self, get_crawler_factory):
+    def test_from_crawler(self, crawler_factory):
         """Test from_crawler"""
         with pytest.raises(NotConfigured, match='GFW_PROXY'):
-            self.mw_kls.from_crawler(get_crawler_factory({'A': 1}))
+            self.mw_kls.from_crawler(crawler_factory({'A': 1}))
 
     def test_process_request_scene(self, spider, middleware):  # pylint: disable=no-self-use
         """Test process_request with scene"""

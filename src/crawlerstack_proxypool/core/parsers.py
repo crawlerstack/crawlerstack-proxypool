@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, List, Optional, Union
 from scrapy import Selector
 from scrapy.http import HtmlResponse, Response
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:   # pragma: no cover
     from crawlerstack_proxypool.core.base import BaseSpider
 
 

@@ -12,7 +12,7 @@ class RedisSpider(Spider):  # pylint: disable=abstract-method
     Redis spider
     This is abstract spider, you should impl RedisSpider.parse method.
     """
-
+    use_set = None
     server: Redis = None
     redis_batch_size: int = None
     redis_key: str = None
@@ -34,6 +34,9 @@ class RedisSpider(Spider):  # pylint: disable=abstract-method
 
         if self.redis_key is None:
             self.redis_key = self.name
+
+        if self.use_set is None:
+            self.use_set = self.settings.getbool('REDIS_START_URL_AS_SET')
 
         # When REDIS_START_URL_BATCH_SIZE is None, will use CONCURRENT_REQUESTS.
         if self.redis_batch_size is None:
@@ -57,8 +60,7 @@ class RedisSpider(Spider):  # pylint: disable=abstract-method
 
     def next_requests(self) -> Iterable[Request]:
         """Next requests, to fetch data from redis, and yield request object."""
-        use_set = self.settings.getbool('REDIS_START_URL_AS_SET')
-        fetch_one = self.server.spop if use_set else self.server.lpop
+        fetch_one = self.server.spop if self.use_set else self.server.lpop
         found = 0
         while found < self.redis_batch_size:
             data = fetch_one(self.redis_key)

@@ -1,7 +1,6 @@
 """Test config"""
 import json
 import textwrap
-from copy import deepcopy
 from pathlib import Path
 from typing import Dict, List, Optional, Type, Union
 
@@ -11,6 +10,7 @@ from scrapy.http import HtmlResponse, Response
 from scrapy.utils.test import get_crawler as scrapy_get_crawler
 
 from crawlerstack_proxypool.config import settings
+from crawlerstack_proxypool.core.schemas import SceneTaskSchema
 
 JsonDataType = List[Dict[str, Union[int, str]]]
 TextType = Union[Path, str, JsonDataType, Dict[str, JsonDataType]]
@@ -18,8 +18,9 @@ RuleType = Dict[str, str]
 ExpectValueType = List[str]
 
 
-@pytest.fixture()
-def settings_dict() -> Dict:
+@pytest.fixture(name='settings_dict')
+def fixture_settings_dict() -> Dict:
+    """pytest settings"""
     _s = settings.as_dict()
     spider_tasks = [
         {
@@ -33,37 +34,54 @@ def settings_dict() -> Dict:
             'resource': []
         }
     ]
-    _s.update({'SPIDER_TASKS': spider_tasks})
+    scene_tasks = [
+        SceneTaskSchema(
+            name='foo',
+            upstream=[],
+            check_name='keywords',
+            verify_urls=['http://example.com'],
+            enable=True,
+            interval=1
+        ).dict()
+    ]
+    _s.update({
+        'REDIS_START_URL_BATCH_SIZE': 1,
+        'SPIDER_TASKS': spider_tasks,
+        'SCENE_TASKS': scene_tasks,
+        'DOWNLOAD_TIMEOUT': 5,
+    })
     return _s
 
 
-@pytest.fixture()
-def get_crawler_factory():
+@pytest.fixture(name='crawler_factory')
+def fixture_crawler_factory(settings_dict):
     """get crawler factory"""
 
-    def _(settings_dict=None, spider_kls=None):
-        return scrapy_get_crawler(spider_kls, settings_dict=settings_dict or settings.as_dict())
+    def _(_s=None, spider_kls=None):
+        return scrapy_get_crawler(spider_kls, settings_dict=_s or settings_dict)
 
     return _
 
 
-@pytest.fixture()
-def crawler(get_crawler_factory):
-    yield get_crawler_factory()
+@pytest.fixture(name='crawler')
+def fixture_crawler(crawler_factory):
+    """Crawler fixture"""
+    yield crawler_factory()
 
 
-@pytest.fixture()
-def get_spider_factory(crawler):
+@pytest.fixture(name='spider_factory')
+def fixture_spider_factory(crawler):
+    """Spider factory"""
     def _(spider_kls: Type[Spider], *args, **kwargs):
         return spider_kls.from_crawler(crawler, *args, **kwargs)
 
     return _
 
 
-@pytest.fixture()
-def spider(get_spider_factory):
+@pytest.fixture(name='spider')
+def spider(spider_factory):
     """spider fixture"""
-    yield get_spider_factory(Spider, 'foo')
+    yield spider_factory(Spider, 'foo')
 
 
 test_data_dir = Path(__file__).parent / 'data'

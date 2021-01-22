@@ -22,14 +22,14 @@ class DemoRedisSpider(RedisSpider):
     'redis_batch_size',
     [None, 1]
 )
-def test__setup_redis(get_crawler_factory, mocker, redis_batch_size):
+def test__setup_redis(crawler_factory, mocker, redis_batch_size):
     """test _setup_redis method"""
     from_url_mocker = mocker.patch.object(Redis, 'from_url')
     customs_settings = {
         'REDIS_START_URL_BATCH_SIZE': redis_batch_size,
     }
 
-    crawler = get_crawler_factory(settings_dict=customs_settings)
+    crawler = crawler_factory(customs_settings)
 
     spider = DemoRedisSpider.from_crawler(crawler)
     if redis_batch_size:
@@ -40,10 +40,10 @@ def test__setup_redis(get_crawler_factory, mocker, redis_batch_size):
     from_url_mocker.assert_called()
 
 
-def test__setup_redis_has_server(get_crawler_factory, mocker):
+def test__setup_redis_has_server(crawler_factory, mocker):
     """test _setup_redis method when pass a server"""
     mock_server = mocker.MagicMock()
-    spider = DemoRedisSpider.from_crawler(get_crawler_factory(), server=mock_server)
+    spider = DemoRedisSpider.from_crawler(crawler_factory(), server=mock_server)
     assert mock_server is spider.server
 
 
@@ -58,7 +58,7 @@ def test__setup_redis_error():
     'use_set',
     [True, False]
 )
-def test(get_crawler_factory, mocker, use_set):
+def test(crawler_factory, mocker, use_set):
     """test spider logic"""
     batch_size = 5
     mock_redis = mocker.MagicMock()
@@ -83,7 +83,7 @@ def test(get_crawler_factory, mocker, use_set):
     else:
         mock_redis.lpop = mocker.MagicMock(side_effect=fetch_one)
 
-    crawler = get_crawler_factory(settings_dict={
+    crawler = crawler_factory({
         'REDIS_START_URL_AS_SET': use_set,
         'REDIS_START_URL_BATCH_SIZE': batch_size,
         # 'REDIS_URL': 'redis://127.0.0.1:6379/2',
@@ -99,7 +99,7 @@ def test(get_crawler_factory, mocker, use_set):
     spider.crawler.engine.crawl.assert_called()
 
 
-def test_requests_no_request(get_crawler_factory, mocker, caplog):
+def test_requests_no_request(crawler_factory, mocker, caplog):
     """test requests no request"""
     batch_size = 1
     customs_settings = {
@@ -127,7 +127,7 @@ def test_requests_no_request(get_crawler_factory, mocker, caplog):
     mocker.patch.object(Redis, 'from_url', return_value=mock_redis)
     mock_redis.spop = mocker.MagicMock(side_effect=['http://example.com', 'http://example.com'])
 
-    spider = FakeSpider.from_crawler(get_crawler_factory(settings_dict=customs_settings))
+    spider = FakeSpider.from_crawler(crawler_factory(customs_settings))
     with caplog.at_level(level=logging.DEBUG):
         assert len(list(spider.start_requests())) == batch_size
         assert 'Request not made from data:' in caplog.text

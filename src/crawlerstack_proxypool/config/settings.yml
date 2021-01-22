@@ -37,17 +37,17 @@ DEFAULT_REQUEST_HEADERS:
 SPIDER_MIDDLEWARES:
   scrapy_splash.SplashDeduplicateArgsMiddleware: 100
 DOWNLOADER_MIDDLEWARES:
-  proxypool.core.middlewares.UserAgentMiddleware: 499
-  proxypool.core.middlewares.ProxyMiddleware: 720
+  crawlerstack_proxypool.core.middlewares.UserAgentMiddleware: 499
+  crawlerstack_proxypool.core.middlewares.ProxyMiddleware: 720
   scrapy_splash.SplashCookiesMiddleware: 723
   scrapy_splash.SplashMiddleware: 725
   scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware: 810
-  proxypool.core.middlewares.RequestProfileMiddleware: 901
+  crawlerstack_proxypool.core.middlewares.RequestProfileMiddleware: 901
 EXTENSIONS:
   scrapy.extensions.telnet.TelnetConsole: null
 ITEM_PIPELINES:
-  proxypool.core.pipelines.ProxyIPPipeline: 100
-  proxypool.core.pipelines.ScenePipeline: 100
+  crawlerstack_proxypool.core.pipelines.RawIpPipeline: 100
+  crawlerstack_proxypool.core.pipelines.ScenePipeline: 100
 DUPEFILTER_CLASS: scrapy.dupefilters.BaseDupeFilter # Do not enable DupeFilter
 HTTPCACHE_ENABLED: False
 HTTPCACHE_EXPIRATION_SECS: 0

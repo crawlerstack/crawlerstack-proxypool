@@ -6,7 +6,7 @@ from redis import Redis
 from scrapy_splash import SplashRequest
 
 from crawlerstack_proxypool.core.base import (BaseAjaxSpider, BaseParserSpider,
-                                              BaseProxyIPSpider)
+                                              BaseRawIPSpider)
 from crawlerstack_proxypool.core.parsers import HtmlParser
 from crawlerstack_proxypool.utils.constants import QUEUE_PREFIX
 from tests.conftest import proxy_table_html
@@ -16,21 +16,21 @@ class TestBaseParserSpider:
     """Test base parser spider"""
     spider_kls = BaseParserSpider
 
-    def test_parse(self, get_crawler_factory, response_factory, settings_dict):
+    def test_parse(self, crawler_factory, response_factory, settings_dict):
         """Test parse"""
         response = response_factory(proxy_table_html)
-        crawler = get_crawler_factory(settings_dict=settings_dict)
+        crawler = crawler_factory(settings_dict)
         spider = self.spider_kls.from_crawler(crawler, name='foo')
         result = spider.parse(response)
         assert len(list(result)) == 2
 
-    def test_no_task(self, get_crawler_factory, settings_dict):
+    def test_no_task(self, crawler_factory, settings_dict):
         """Test no task"""
-        crawler = get_crawler_factory(settings_dict)
+        crawler = crawler_factory(settings_dict)
         with pytest.raises(ValueError, match='No task config.'):
             self.spider_kls.from_crawler(crawler, name='demo')
 
-    def test_parse_error(self, mocker, get_crawler_factory, settings_dict, caplog):
+    def test_parse_error(self, mocker, crawler_factory, settings_dict, caplog):
         """Test parse error"""
         spider_tasks = [
             {
@@ -46,7 +46,7 @@ class TestBaseParserSpider:
         ]
         settings_dict.update({'SPIDER_TASKS': spider_tasks})
         mocker.patch.object(HtmlParser, 'parse', side_effect=TypeError('foo'))
-        crawler = get_crawler_factory(settings_dict=settings_dict)
+        crawler = crawler_factory(settings_dict)
         spider = self.spider_kls.from_crawler(crawler, name='demo')
         with caplog.at_level(logging.ERROR):
             list(spider.parse(mocker.MagicMock()))
@@ -55,14 +55,14 @@ class TestBaseParserSpider:
 
 def test_base_proxy_ip_spider():
     """Test BaseProxyIpSpider"""
-    spider = BaseProxyIPSpider('foo')
-    assert spider.redis_key == f'{QUEUE_PREFIX}:spider:foo:seed'
+    spider = BaseRawIPSpider('foo')
+    assert spider.redis_key == f'{QUEUE_PREFIX}:raw:foo:seed'
 
 
-def test_base_ajax_spider(mocker, get_crawler_factory, settings_dict):
+def test_base_ajax_spider(mocker, crawler_factory, settings_dict):
     """Test BaseAjaxSpider"""
     mocker.patch.object(Redis, 'execute_command', return_value='http://example.com')
-    crawler = get_crawler_factory(settings_dict)
+    crawler = crawler_factory(settings_dict)
     spider = BaseAjaxSpider.from_crawler(crawler, 'foo')
     request = next(spider.start_requests())
     assert isinstance(request, SplashRequest)

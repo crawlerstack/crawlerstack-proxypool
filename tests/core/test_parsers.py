@@ -8,7 +8,7 @@ from scrapy.http import Response
 from crawlerstack_proxypool.core.parsers import (BaseParser, HtmlParser,
                                                  JsonParser, TextParser)
 from tests.conftest import (ExpectValueType, RuleType, TextType,
-                            proxy_div_html, proxy_table_html, test_data_dir)
+                            proxy_div_html, proxy_table_html)
 
 
 def _test_parse(

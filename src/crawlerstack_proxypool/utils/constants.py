@@ -1,1 +1,3 @@
-QUEUE_PREFIX = 'proxypool'
+"""Constants"""
+
+QUEUE_PREFIX = 'crawlerstack_proxypool'
