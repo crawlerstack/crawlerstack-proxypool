@@ -38,7 +38,7 @@ def test_random_verification_url(
     scene_task = SceneTaskSchema(
         name='http',
         upstream=[],
-        check_name='anonymous',
+        checker_name='anonymous',
         verify_urls_from_redis=from_redis,
         verify_urls=['http://httpbin.org/ip'],
         enable=True,
@@ -77,26 +77,17 @@ def test_parse(mocker, settings_dict, keywords, score):
         'REDIS_START_URL_BATCH_SIZE': 1,
         'GFW_PROXY': None,
         'SCENE_TASKS': [
-            SceneTaskSchema(
-                name='foo',
-                upstream=[],
-                check_name='keywords',
-                verify_urls=['http://example.com'],
-                checker_rule={'keywords': keywords, },
-                enable=True,
-                interval=1
-            ).dict()
+            {
+                'name': 'foo',
+                'upstream': [],
+                'checker_name': 'keywords',
+                'verify_urls': ['http://example.com'],
+                'checker_rule': {'keywords': keywords, },
+                'enable': True,
+                'interval': 1
+            }
         ]
     })
-    SceneTaskSchema(
-        name='foo',
-        upstream=[],
-        check_name='keywords',
-        verify_urls=['http://example.com'],
-        checker_rule={'keywords': keywords, },
-        enable=True,
-        interval=1
-    )
     runner = CrawlerRunner(settings_dict)
     runner_crawler = runner.create_crawler(SceneSpider)
     items = []

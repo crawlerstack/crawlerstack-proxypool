@@ -35,14 +35,14 @@ def fixture_settings_dict() -> Dict:
         }
     ]
     scene_tasks = [
-        SceneTaskSchema(
-            name='foo',
-            upstream=[],
-            check_name='keywords',
-            verify_urls=['http://example.com'],
-            enable=True,
-            interval=1
-        ).dict()
+        {
+            'name': 'foo',
+            'upstream': [],
+            'checker_name': 'keywords',
+            'verify_urls': ['http://example.com'],
+            'enable': True,
+            'interval': 1,
+        }
     ]
     _s.update({
         'REDIS_START_URL_BATCH_SIZE': 1,
@@ -72,6 +72,7 @@ def fixture_crawler(crawler_factory):
 @pytest.fixture(name='spider_factory')
 def fixture_spider_factory(crawler):
     """Spider factory"""
+
     def _(spider_kls: Type[Spider], *args, **kwargs):
         return spider_kls.from_crawler(crawler, *args, **kwargs)
 
