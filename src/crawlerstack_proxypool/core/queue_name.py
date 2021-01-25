@@ -17,7 +17,7 @@ class QueueName:
         return f'{QUEUE_PREFIX}:{self._spider_name}:{name}'
 
 
-class RawIPQueueName(QueueName):
+class PageQueueName(QueueName):
     """
     eg: ajax seed queue ====> `crawlerstack_proxypool:spider:ajax:seed`
     """

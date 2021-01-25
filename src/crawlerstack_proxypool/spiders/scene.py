@@ -24,6 +24,7 @@ class SceneSpider(BaseSpider):
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
         self.scene_queue_name = SceneQueueName(self.name)
+        self.redis_key = self.scene_queue_name.seed
 
     def setup_plugin(self):
         """Set checker"""

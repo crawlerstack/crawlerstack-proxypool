@@ -5,8 +5,8 @@ import pytest
 from redis import Redis
 from scrapy_splash import SplashRequest
 
-from crawlerstack_proxypool.core.base import (BaseAjaxSpider, BaseParserSpider,
-                                              BaseRawIPSpider)
+from crawlerstack_proxypool.core.base import (BaseAjaxSpider, BasePageSpider,
+                                              BaseParserSpider)
 from crawlerstack_proxypool.core.parsers import HtmlParser
 from crawlerstack_proxypool.utils.constants import QUEUE_PREFIX
 from tests.conftest import proxy_table_html
@@ -55,7 +55,7 @@ class TestBaseParserSpider:
 
 def test_base_proxy_ip_spider():
     """Test BaseProxyIpSpider"""
-    spider = BaseRawIPSpider('foo')
+    spider = BasePageSpider('foo')
     assert spider.redis_key == f'{QUEUE_PREFIX}:raw:foo:seed'
 
 

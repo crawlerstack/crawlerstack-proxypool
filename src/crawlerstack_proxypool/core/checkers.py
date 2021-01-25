@@ -35,6 +35,8 @@ class AnonymousChecker(BaseChecker):  # pylint: disable=too-few-public-methods
     origin: str = ''  # origin ip address
     http_check_url = 'https://httpbin.org/ip'
     update_local_public_ip_interval = 60 * 5
+    _MAX_REFRESH_ERROR_TIMES = 20
+    _refresh_error_times = 0
 
     def __init__(self, spider: 'SceneSpider'):
         super().__init__(spider)
@@ -58,10 +60,20 @@ class AnonymousChecker(BaseChecker):  # pylint: disable=too-few-public-methods
     def __refresh_publish_ip(self):
         """Obtain local public ip addr"""
         request = Request(url=self.http_check_url)
-        resp = yield self.__downloader.download_request(request, spider=self.spider)
-        json_obj = json.loads(resp.text)
-        self.origin = json_obj.get('origin')
-        self.logger.debug(f'Refresh {self.spider} origin ip {self.origin} success.')
+        try:
+            self._refresh_error_times = 0
+            resp = yield self.__downloader.download_request(request, spider=self.spider)
+            json_obj = json.loads(resp.text)
+            self.origin = json_obj.get('origin')
+            self.logger.debug(f'Refresh {self.spider} origin ip {self.origin} success.')
+        except Exception as ex:
+            self._refresh_error_times += 1
+            self.logger.error(f'{self} refresh publish ip error. {ex}')
+            if self._refresh_error_times >= self._MAX_REFRESH_ERROR_TIMES:
+                self.spider.crawler.engine.close_spider(
+                    self.spider,
+                    reason='Checker max refresh publish ip error.'
+                )
 
     def check(self, *, response: Response, **kwargs) -> bool:
         """

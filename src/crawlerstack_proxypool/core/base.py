@@ -9,9 +9,8 @@ from stevedore import DriverManager
 
 from crawlerstack_proxypool.core.items import ProxyUrlItem
 from crawlerstack_proxypool.core.parsers import BaseParser
-from crawlerstack_proxypool.core.queue_name import RawIPQueueName
-from crawlerstack_proxypool.core.schemas import (BaseTaskSchema,
-                                                 SpiderTaskSchema)
+from crawlerstack_proxypool.core.queue_name import PageQueueName
+from crawlerstack_proxypool.core.schemas import BaseTaskSchema, PageTaskSchema
 from crawlerstack_proxypool.core.spiders import RedisSpider
 
 
@@ -60,11 +59,12 @@ class BaseParserSpider(BaseSpider):
     """
     Loaded parser's spider
     """
+    use_set = True
     plugin_namespace = 'crawlerstack_proxypool.spider.parsers_driver'
     TASK_KEY = 'SPIDER_TASKS'
     parser: BaseParser = None
-    task: SpiderTaskSchema = None
-    TASK_SCHEMA: Type[SpiderTaskSchema] = SpiderTaskSchema
+    task: PageTaskSchema = None
+    TASK_SCHEMA: Type[PageTaskSchema] = PageTaskSchema
 
     def setup_plugin(self) -> None:
         self.parser = self.load_plugin(self.task.parser_name)
@@ -80,17 +80,17 @@ class BaseParserSpider(BaseSpider):
             self.logger.error(ex)
 
 
-class BaseRawIPSpider(BaseParserSpider):
+class BasePageSpider(BaseParserSpider):
     """
     聚合功能，从 Redis 中获取数据
     """
 
     def __init__(self, name=None, **kwargs):
         super().__init__(name=name, **kwargs)
-        self.redis_key = RawIPQueueName(self.name).seed
+        self.redis_key = PageQueueName(self.name).seed
 
 
-class BaseAjaxSpider(BaseRawIPSpider):
+class BaseAjaxSpider(BasePageSpider):
     """Use splash access page"""
 
     def make_request_from_url(self, url: str) -> Request:
@@ -98,7 +98,7 @@ class BaseAjaxSpider(BaseRawIPSpider):
         return SplashRequest(url, dont_filter=True, args={'wait': 0.5, 'timeout': 10})
 
 
-class BaseGfwSpider(BaseRawIPSpider):
+class BaseGfwSpider(BasePageSpider):
     """
     Gfw spider
     Use ProxyMiddleware set gfw proxy to access gfw page

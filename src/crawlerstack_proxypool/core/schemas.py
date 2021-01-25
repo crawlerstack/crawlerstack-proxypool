@@ -39,7 +39,7 @@ class SceneTaskSchema(BaseTaskSchema):  # pylint: disable=too-few-public-methods
     verify_urls_from_redis: Optional[bool] = False
 
 
-class SpiderTaskSchema(BaseTaskSchema):  # pylint: disable=too-few-public-methods
+class PageTaskSchema(BaseTaskSchema):  # pylint: disable=too-few-public-methods
     """
     爬虫任务配置
     """
