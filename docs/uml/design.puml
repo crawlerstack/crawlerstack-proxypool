@@ -1,0 +1,10 @@
+@startuml
+'https://plantuml.com/class-diagram
+
+class CrawlSpider {
+
+    + start_request():
+}
+
+
+@enduml

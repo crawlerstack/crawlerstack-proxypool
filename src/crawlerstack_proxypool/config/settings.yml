@@ -1,0 +1,3 @@
+show_sql: true
+
+db_url: sqlite+aiosqlite:////tmp/crawlerstack_proxypool
