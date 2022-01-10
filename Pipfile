@@ -11,9 +11,11 @@ fake-useragent = "*"
 aiohttp = "*"
 click = "*"
 aioredis = "*"
-sqlalchemy = {extras = ["asyncio"], version = "*"}
 aiosqlite = "*"
 apscheduler = "*"
+lxml = "*"
+aiomysql = "*"
+sqlalchemy = {extras = ["asyncio"], version = "*"}
 
 [dev-packages]
 isort = "*"

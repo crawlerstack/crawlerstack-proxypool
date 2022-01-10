@@ -27,7 +27,7 @@ settings = Dynaconf(
     # environments=True,  # Enable multi-level configuration，eg: default, development, production
     load_dotenv=True,  # Enable load .env
     # env_switcher='CREWLERSTACK_PROXYPOOL_ENV',
-    lowercase_read=False,  # If true, can't use `settings.foo`, but can only use `settings.FOO`
+    lowercase_read=False,  # If true, can't use `settings.foo.py`, but can only use `settings.FOO`
     includes=_external_files,  # Customs settings.
     basedir=_base_dir,  # `settings.BASEDIR`
 )

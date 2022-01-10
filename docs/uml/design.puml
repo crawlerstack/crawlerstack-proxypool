@@ -1,9 +1,14 @@
 @startuml
 'https://plantuml.com/class-diagram
 
-class CrawlSpider {
+class Spider {
+    + start_request()
+    + make_request()
+}
 
-    + start_request():
+class Downloader {
+
+    + download()
 }
 
 

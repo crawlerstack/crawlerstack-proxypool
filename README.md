@@ -17,4 +17,22 @@
 
 ## 思考
 
-任务，通过配置动态创建。
+爬虫逻辑和任务逻辑如何调用，在有关数据访问的逻辑上如何调用？
+
+```text
+class Spider:
+    
+    request_queue: asyncio.Queue
+    start_urls: list
+    
+    def start_request():
+        将 url 加入到 queue 中
+        
+    def downloader():
+        从队列中获取数据，然后下载
+        
+    def download_handler():
+        真正下载的逻辑
+        
+    def parse():
+```
