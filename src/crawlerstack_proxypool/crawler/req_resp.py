@@ -1,71 +1,27 @@
 import dataclasses
-import json
-import logging
-from ssl import SSLContext
-from typing import Any
+import typing
 
-from aiohttp import BasicAuth, ClientResponse, ClientTimeout
-from yarl import URL
-
-logger = logging.getLogger(__name__)
+from httpx import URL
+from httpx._client import UseClientDefault
+from httpx._types import RawURL, QueryParamTypes, HeaderTypes, CookieTypes, RequestContent, RequestData, RequestFiles, \
+    AuthTypes
 
 
-@dataclasses.dataclass
+@dataclasses.dataclass(unsafe_hash=True)
 class RequestProxy:
-    method: str
-    url: URL
-    _: dataclasses.KW_ONLY = None
-    params: dict[str, str] | None = None
-    data: Any = None
-    json: Any = None
-    cookies: dict[str, str] | None = None
-    headers: dict[str, str] | None = None
-
-    auth: BasicAuth | None = None
-
-    allow_redirects: bool = True
-    max_redirects: int = 10
-
-    compress: str | None = None
-
-    proxy: URL | None = None
-    proxy_auth: BasicAuth | None = None
-    timeout: ClientTimeout | None = None
-
-    fingerprint: bytes | None = None
-    ssl_context: SSLContext | None = None
-    ssl: bool | None = None
-
-    read_bufsize: int | None = None  # noqa
-
-
-@dataclasses.dataclass
-class ResponseProxy:
-    method: str
-    url: URL
-    text: str
-    status: int
-    headers: dict
-    host: str
-    request: RequestProxy
-
-    @property
-    def ok(self):
-        return self.status < 400
-
-    @property
-    def json(self):
-        return json.loads(self.text)
-
-    @classmethod
-    async def from_client_response(cls, response: ClientResponse, request: RequestProxy):
-        text = await response.text()
-        return cls(
-            method=response.method,
-            url=response.url,
-            text=text,
-            status=response.status,
-            headers=dict(response.headers) if response.headers else {},
-            host=response.host,
-            request=request
-        )
+    """
+    Proxy httpx.Request
+    """
+    method: typing.Union[str, bytes]
+    url: typing.Union[URL, str]
+    _ = dataclasses.KW_ONLY
+    params: QueryParamTypes = None
+    headers: HeaderTypes = None
+    cookies: CookieTypes = None
+    content: RequestContent = None
+    data: RequestData = None
+    files: RequestFiles = None
+    json: typing.Any = None
+    extensions: dict = None
+    auth: typing.Union[AuthTypes, UseClientDefault] = None
+    follow_redirects: typing.Union[bool, UseClientDefault] = True

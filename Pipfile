@@ -8,7 +8,6 @@ dynaconf = "*"
 stevedore = "*"
 pydantic = "*"
 fake-useragent = "*"
-aiohttp = "*"
 click = "*"
 aioredis = "*"
 aiosqlite = "*"
@@ -16,6 +15,7 @@ apscheduler = "*"
 lxml = "*"
 aiomysql = "*"
 sqlalchemy = {extras = ["asyncio"], version = "*"}
+httpx = "*"
 
 [dev-packages]
 isort = "*"
