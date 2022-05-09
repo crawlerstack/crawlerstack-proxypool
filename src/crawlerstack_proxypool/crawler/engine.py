@@ -1,3 +1,6 @@
+"""
+Crawler engine
+"""
 import asyncio
 import dataclasses
 import logging
@@ -13,6 +16,9 @@ logger = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class ExecuteEngine:
+    """
+    Crawler engine
+    """
     _spider: Spider = dataclasses.field(init=False)
     _running: bool = dataclasses.field(default=False, init=False)
     _closed: asyncio.Future = dataclasses.field(default=None, init=False)
@@ -20,33 +26,56 @@ class ExecuteEngine:
     _downloader: Downloader = dataclasses.field(default_factory=Downloader, init=False)
     _scraper: Scraper = dataclasses.field(default_factory=Scraper, init=False)
     _start_requests: typing.Iterator[RequestProxy] | None = dataclasses.field(default=None, init=False)
-    _processing_requests: set = dataclasses.field(default_factory=set, init=False)
+    _processing_requests_queue: asyncio.Queue = dataclasses.field(init=False)
 
     def __post_init__(self):
         self._closed = asyncio.Future()
+        self._processing_requests_queue = asyncio.Queue(10)
 
     @property
-    def loop(self):
+    def loop(self) -> asyncio.AbstractEventLoop:
+        """
+        Get event_loop
+        :return:
+        """
         return asyncio.get_running_loop()
 
     async def start(self) -> asyncio.Future:
-        """"""
+        """
+        Start engine.
+        :return:
+        """
         self._running = True
         return await self._closed
 
     async def close(self):
+        """
+        Close engine.
+        :return:
+        """
         if self._running:
             await self.stop()
 
     async def stop(self):
+        """
+        Stop engine.
+        :return:
+        """
+
         self._running = False
         # Spider closed
         await self.close_spider()
         # set closed result.
-        self._closed.set_result('Closed.')
+        if not self._closed.done():
+            self._closed.set_result('Closed.')
         logger.debug('Stopped execution engine.')
 
     def open_spider(self, spider):
+        """
+        Open spider.
+        :param spider:
+        :return:
+        """
         self._spider = spider
         self._start_requests = self._spider.start_requests()
         self._next_request_task = self.loop.create_task(self.loop_call(5))
@@ -64,13 +93,20 @@ class ExecuteEngine:
         await self.loop_call(delay)
 
     async def close_spider(self):
-        """"""
+        """
+        Close spider.
+        :return:
+        """
         await self._downloader.close()
         if self._next_request_task:
             self._next_request_task.cancel('close.')
         logger.debug('Closed spider.')
 
     async def next_request(self):
+        """
+        Next request.
+        :return:
+        """
         if self._start_requests is not None and not self.should_pass():
             try:
                 request = next(self._start_requests)
@@ -82,43 +118,65 @@ class ExecuteEngine:
         await self.spider_idle()
 
     async def crawl(self, request: RequestProxy):
-        self._processing_requests.add(request)
+        """
+        Crawl task
+        :param request:
+        :return:
+        """
+        await self._processing_requests_queue.put(request)
         self.loop.create_task(self.schedule(request))
         self.loop.create_task(self.next_request())
 
     async def schedule(self, request):
+        """
+        Schedule.
+        :param request:
+        :return:
+        """
         try:
             download_task = await self._downloader.enqueue(request)
             response = await download_task
 
-            self.loop.create_task(self.next_request())
+            if response:
+                scrap_task = await self._scraper.enqueue(response, self._spider)
+                await scrap_task
 
-            scrap_task = await self._scraper.enqueue(response, self._spider)
-            await scrap_task
+            self.loop.create_task(self.next_request())
         finally:
-            self._processing_requests.remove(request)
+            await self._processing_requests_queue.get()
 
     def should_pass(self):
         """
         下此次操作是否跳过
         :return:
         """
-        return any([not self._running])
+        return any([
+            not self._running,
+            self._downloader.should_pass(),
+            self._scraper.should_pass(),
+            self._processing_requests_queue.full(),
+        ])
 
     def spider_is_idle(self) -> bool:
-        """"""
+        """
+        CHeck spider is idle.
+        :return:
+        """
         if not self._downloader.idle():
             return False
         if not self._scraper.idle():
             return False
-        if self._processing_requests:
+        if not self._processing_requests_queue.empty():
             return False
         if self._start_requests is not None:
             return False
         return True
 
     async def spider_idle(self):
-        """"""
+        """
+        Spider idle.
+        :return:
+        """
         if self.spider_is_idle():
             logger.debug('Engine is idle.')
             await self.stop()

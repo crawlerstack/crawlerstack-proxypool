@@ -1,7 +1,9 @@
-from typing import cast, Type
+from typing import Type, cast
 
-from crawlerstack_proxypool.common.checker import KeywordChecker, AnonymousChecker
-from crawlerstack_proxypool.common.parser import BaseParser, HtmlParser, JsonParser
+from crawlerstack_proxypool.common.checker import (AnonymousChecker,
+                                                   KeywordChecker)
+from crawlerstack_proxypool.common.parser import (BaseParser, HtmlParser,
+                                                  JsonParser)
 
 
 class ParserFactory:

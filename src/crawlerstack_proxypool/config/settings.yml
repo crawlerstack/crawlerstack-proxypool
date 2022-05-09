@@ -1,7 +1,10 @@
 show_sql: true
 
-#db_url: sqlite+aiosqlite:////tmp/crawlerstack_proxypool
-db_url: mysql+aiomysql://root:000000@localhost/proxypool
+# Database config.
+# Default is sqlite+aiosqlite:////<project_path>/.local/proxypool.db
+#database: sqlite+aiosqlite:////tmp/crawlerstack_proxypool
+#database: mysql+aiomysql://root:000000@localhost/proxypool
+database:
 
 redis_url: redis://localhost
 

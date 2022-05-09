@@ -19,3 +19,7 @@ class ValidateSpider(Spider):
 
     async def parse(self, response: Response) -> typing.Any:
         pass
+
+
+class FetchSpider(Spider):
+    """"""

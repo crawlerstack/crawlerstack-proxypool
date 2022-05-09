@@ -9,7 +9,7 @@ from sqlalchemy.orm import joinedload
 
 from crawlerstack_proxypool import models
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import ProxyStatusModel, ModelType
+from crawlerstack_proxypool.models import ModelType, ProxyStatusModel
 
 
 @dataclasses.dataclass

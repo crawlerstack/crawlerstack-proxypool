@@ -7,7 +7,6 @@ import dataclasses
 from typing import Type
 
 from crawlerstack_proxypool.crawler.engine import ExecuteEngine
-
 from crawlerstack_proxypool.crawler.spider import Spider
 
 

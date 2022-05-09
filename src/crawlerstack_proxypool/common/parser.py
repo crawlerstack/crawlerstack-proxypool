@@ -8,7 +8,8 @@ from lxml import etree
 from lxml.etree import Element
 
 from crawlerstack_proxypool.crawler.req_resp import ResponseProxy
-from crawlerstack_proxypool.crawler.spider import BaseParser as SpiderParser, Spider
+from crawlerstack_proxypool.crawler.spider import BaseParser as SpiderParser
+from crawlerstack_proxypool.crawler.spider import Spider
 
 logger = logging.getLogger(__name__)
 

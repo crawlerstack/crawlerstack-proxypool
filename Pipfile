@@ -1,7 +1,7 @@
 [[source]]
-url = "https://pypi.org/simple"
+url = "https://mirrors.aliyun.com/pypi/simple/"
 verify_ssl = true
-name = "pypi"
+name = "aliyun"
 
 [packages]
 dynaconf = "*"
@@ -16,6 +16,7 @@ lxml = "*"
 aiomysql = "*"
 sqlalchemy = {extras = ["asyncio"], version = "*"}
 httpx = "*"
+yarl = "*"
 
 [dev-packages]
 isort = "*"
@@ -25,6 +26,8 @@ pytest-cov = "*"
 pylint = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
+pytest-pylint = "*"
+pylint-pytest = "*"
 
 [requires]
 python_version = "3.10"

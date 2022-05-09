@@ -1,13 +1,10 @@
 """Test config"""
 import asyncio
-import logging
 from datetime import datetime
-from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-from sqlalchemy import create_engine, select
-from sqlalchemy.engine import Engine
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     create_async_engine)
 from sqlalchemy.orm import sessionmaker
@@ -83,7 +80,7 @@ async def session(migrate, session_factory) -> AsyncSession:
 @pytest.fixture(autouse=True)
 def migrate(settings):
     async def setup():
-        _engine: AsyncEngine = create_async_engine(settings.DB_URL)
+        _engine: AsyncEngine = create_async_engine(settings.DATABASE)
         async with _engine.begin() as conn:
             await conn.run_sync(BaseModel.metadata.drop_all)
             await conn.run_sync(BaseModel.metadata.create_all)

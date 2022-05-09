@@ -1,6 +1,6 @@
 import dataclasses
 import logging
-from typing import ClassVar, AsyncIterable, Iterable
+from typing import AsyncIterable, ClassVar, Iterable
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from yarl import URL

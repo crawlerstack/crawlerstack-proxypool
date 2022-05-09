@@ -2,7 +2,6 @@
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
-
 [tool.pytest.ini_options]
 testpaths = "tests"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
@@ -10,3 +9,6 @@ python_files = ["tests.py", "test_*.py", "*_tests.py"]
 #log_level = "DEBUG"
 #log_cli_format = "%(asctime)s %(levelname)s %(name)s %(process)d %(thread)d %(message)s"
 #log_cli_date_format = "%Y-%m-%d %H:%M:%S"
+
+[tool.pylint.MASTER]
+load-plugins= 'pylint_pytest'

@@ -1,13 +1,14 @@
+"""request response proxy"""
 import dataclasses
 import typing
 
 from httpx import URL
 from httpx._client import UseClientDefault
-from httpx._types import RawURL, QueryParamTypes, HeaderTypes, CookieTypes, RequestContent, RequestData, RequestFiles, \
-    AuthTypes
+from httpx._types import (AuthTypes, CookieTypes, HeaderTypes, QueryParamTypes,
+                          RawURL, RequestContent, RequestData, RequestFiles)
 
 
-@dataclasses.dataclass(unsafe_hash=True)
+@dataclasses.dataclass(unsafe_hash=True, eq=False)
 class RequestProxy:
     """
     Proxy httpx.Request

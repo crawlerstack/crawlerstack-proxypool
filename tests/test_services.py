@@ -1,5 +1,4 @@
-import inspect
-from typing import Iterable, AsyncIterable
+from typing import AsyncIterable, Iterable
 
 import pytest
 from yarl import URL

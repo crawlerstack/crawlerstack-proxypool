@@ -7,7 +7,7 @@ from httpx import URL
 
 from crawlerstack_proxypool.common.parser import BaseParser, ParserKwargs
 from crawlerstack_proxypool.crawler.downloader import DownloadHandler
-from crawlerstack_proxypool.crawler.req_resp import ResponseProxy, RequestProxy
+from crawlerstack_proxypool.crawler.req_resp import RequestProxy, ResponseProxy
 from crawlerstack_proxypool.crawler.spider import Spider
 from crawlerstack_proxypool.signals import spider_closed, spider_started
 

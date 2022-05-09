@@ -1,3 +1,6 @@
+"""
+Test engine
+"""
 import asyncio
 
 import pytest
@@ -16,6 +19,7 @@ async def execute_engine():
 async def engine_with_spider(mocker, execute_engine):
     execute_engine.open_spider(spider=mocker.MagicMock())
     yield execute_engine
+    await execute_engine.close()
 
 
 @pytest.mark.parametrize(
@@ -67,48 +71,66 @@ async def test_schedule(mocker, engine_with_spider):
     mocker.patch.object(Scraper, 'enqueue', return_value=result)
 
     request = mocker.MagicMock()
-    engine_with_spider._processing_requests.add(request)
+    await engine_with_spider._processing_requests_queue.put(request)
 
     await engine_with_spider.schedule(request)
-    assert not engine_with_spider._processing_requests
+    assert engine_with_spider._processing_requests_queue.empty()
 
 
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
-    'downloader_idle, scraper_idle, processing_requests, start_requests, expect_value',
+    'downloader_idle, scraper_idle, processing_requests_queue_empty, start_requests, expect_value',
     [
-        (True, True, False, None, True),
-        (True, True, False, object(), False),
+        (True, True, True, None, True),
+        (False, True, True, None, False),
 
-        (True, True, True, None, False),
-        (True, True, True, object(), False),
+        (True, False, True, None, False),
+        (False, False, True, None, False),
+
+        (True, True, False, None, False),
+        (False, True, False, None, False),
 
         (True, False, False, None, False),
-        (True, False, False, object(), False),
-        (True, False, True, None, False),
-        (True, False, True, object(), False),
-
-        (False, True, False, None, False),
-        (False, True, False, object(), False),
-        (False, True, True, None, False),
-        (False, True, True, object(), False),
         (False, False, False, None, False),
-        (False, False, False, object(), False),
-        (False, False, True, None, False),
+
+        (True, True, True, object(), False),
+        (False, True, True, object(), False),
+
+        (True, False, True, object(), False),
         (False, False, True, object(), False),
+
+        (True, True, False, object(), False),
+        (False, True, False, object(), False),
+
     ]
 )
-def test_spider_is_idle(
+async def test_spider_is_idle(
         mocker,
         execute_engine,
         downloader_idle,
         scraper_idle,
-        processing_requests,
+        processing_requests_queue_empty,
         start_requests,
         expect_value,
 ):
+    """
+    test spider is idle
+    :param mocker:
+    :param execute_engine:
+    :param downloader_idle:
+    :param scraper_idle:
+    :param processing_requests_queue_empty:
+    :param start_requests:
+    :param expect_value:
+    :return:
+    """
+    queue = asyncio.Queue(1)
+    if not processing_requests_queue_empty:
+        await queue.put(1)
+
     mocker.patch.object(Downloader, 'idle', return_value=downloader_idle)
     mocker.patch.object(Scraper, 'idle', return_value=scraper_idle)
-    execute_engine._processing_requests = processing_requests
+    execute_engine._processing_requests_queue = queue
     execute_engine._start_requests = start_requests
     result = execute_engine.spider_is_idle()
     assert result == expect_value

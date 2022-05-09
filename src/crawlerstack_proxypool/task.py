@@ -15,9 +15,9 @@ from yarl import URL
 from crawlerstack_proxypool.common import ParserFactory
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.common.parser import BaseParser
-from crawlerstack_proxypool.crawler.req_resp import RequestProxy
-from crawlerstack_proxypool.crawler.spider import FetchSpider, ValidateSpider
 from crawlerstack_proxypool.config import settings
+from crawlerstack_proxypool.crawler.req_resp import RequestProxy
+from crawlerstack_proxypool.spiders import FetchSpider, ValidateSpider
 from crawlerstack_proxypool.db import session_provider
 from crawlerstack_proxypool.service import FetchService, ValidateService
 from crawlerstack_proxypool.signals import (start_fetch_proxy,
