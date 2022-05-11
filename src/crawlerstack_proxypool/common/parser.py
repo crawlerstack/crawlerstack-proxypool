@@ -1,6 +1,7 @@
 """
 Parser
 """
+import abc
 import dataclasses
 import ipaddress
 import json
@@ -44,7 +45,7 @@ class ParserKwargs:
 _KwargsType = TypeVar('_KwargsType', bound=ParserKwargs)
 
 
-class BaseParser:
+class BaseParser(metaclass=abc.ABCMeta):
     """
     抽象 parser 类
     """
@@ -84,6 +85,7 @@ class BaseParser:
             raise Exception(f'You should call {self.__class__}.init_kwargs to init kwargs first.')
         return self._kwargs
 
+    @abc.abstractmethod
     async def parse(self, response: Response, **kwargs):
         """
         解析逻辑

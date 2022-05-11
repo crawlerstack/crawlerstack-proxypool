@@ -6,6 +6,9 @@ from sqlalchemy.orm import declarative_base, relationship
 
 
 class CustomsBase:
+    """
+    自定义初始化规则
+    """
     id = Column(Integer, primary_key=True)
 
 
@@ -15,6 +18,9 @@ ModelType = TypeVar('ModelType', bound=BaseModel)
 
 
 class IpProxyModel(BaseModel):
+    """
+    Ip 代理
+    """
     __tablename__ = 'ip_proxy'
     ip = Column(String(255))
     schema = Column(String(6), comment="代理 IP 的 schema")
@@ -29,6 +35,9 @@ class IpProxyModel(BaseModel):
 
 
 class ProxyStatusModel(BaseModel):
+    """
+    代理状态
+    """
     __tablename__ = 'proxy_status'
     proxy_id = Column(Integer, ForeignKey('ip_proxy.id', ondelete='CASCADE'))
     name = Column(String(255))

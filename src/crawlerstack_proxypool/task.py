@@ -1,3 +1,6 @@
+"""
+Task
+"""
 import asyncio
 import dataclasses
 import functools
@@ -17,9 +20,9 @@ from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.common.parser import BaseParser
 from crawlerstack_proxypool.config import settings
 from crawlerstack_proxypool.crawler.req_resp import RequestProxy
+from crawlerstack_proxypool.service import FetchSpiderService
 from crawlerstack_proxypool.spiders import FetchSpider, ValidateSpider
 from crawlerstack_proxypool.db import session_provider
-from crawlerstack_proxypool.service import FetchService, ValidateService
 from crawlerstack_proxypool.signals import (start_fetch_proxy,
                                             start_validate_proxy)
 
@@ -155,7 +158,7 @@ class FetchSpiderTask:
 
     @session_provider(auto_commit=True)
     async def save(self, proxy: list[URL], session: AsyncSession):
-        service = FetchService(session, self.dest)
+        service = FetchSpiderService(session, self.dest)
         await service.save(proxy)
 
     async def start(self):

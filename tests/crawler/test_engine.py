@@ -2,8 +2,10 @@
 Test engine
 """
 import asyncio
+import typing
 
 import pytest
+from httpx import Response
 
 from crawlerstack_proxypool.crawler import ExecuteEngine, Spider
 from crawlerstack_proxypool.crawler.downloader import Downloader
@@ -17,7 +19,7 @@ async def execute_engine():
 
 @pytest.fixture()
 async def engine_with_spider(mocker, execute_engine):
-    execute_engine.open_spider(spider=mocker.MagicMock())
+    await execute_engine.open_spider(spider=mocker.MagicMock())
     yield execute_engine
     await execute_engine.close()
 
@@ -31,11 +33,22 @@ async def engine_with_spider(mocker, execute_engine):
 )
 @pytest.mark.asyncio
 async def test_loop_call(event_loop, mocker, execute_engine, called, closed):
-    def cb():
+    """
+    test loop call
+    :param event_loop:
+    :param mocker:
+    :param execute_engine:
+    :param called:
+    :param closed:
+    :return:
+    """
+
+    def callback():
+        """callback"""
         if not execute_engine._closed.done():
             execute_engine._closed.set_result('Closed.')
 
-    event_loop.call_later(0.001, cb)
+    event_loop.call_later(0.001, callback)
     if closed:
         execute_engine._closed.set_result('Closed')
     next_request = mocker.patch.object(ExecuteEngine, 'next_request')
@@ -54,6 +67,7 @@ async def test_loop_call(event_loop, mocker, execute_engine, called, closed):
 )
 @pytest.mark.asyncio
 async def test_next_request(mocker, execute_engine, start_requests, should_pass, crawl_called):
+    """test next request"""
     mocker.patch.object(ExecuteEngine, 'spider_idle')
     mocker.patch.object(ExecuteEngine, 'should_pass', return_value=should_pass)
     crawl = mocker.patch.object(ExecuteEngine, 'crawl')
@@ -64,6 +78,7 @@ async def test_next_request(mocker, execute_engine, start_requests, should_pass,
 
 @pytest.mark.asyncio
 async def test_schedule(mocker, engine_with_spider):
+    """test schedule"""
     result = asyncio.Future()
     result.set_result(True)
     mocker.patch.object(Downloader, 'enqueue', return_value=result)
@@ -113,17 +128,7 @@ async def test_spider_is_idle(
         start_requests,
         expect_value,
 ):
-    """
-    test spider is idle
-    :param mocker:
-    :param execute_engine:
-    :param downloader_idle:
-    :param scraper_idle:
-    :param processing_requests_queue_empty:
-    :param start_requests:
-    :param expect_value:
-    :return:
-    """
+    """test spider is idle"""
     queue = asyncio.Queue(1)
     if not processing_requests_queue_empty:
         await queue.put(1)
@@ -136,19 +141,36 @@ async def test_spider_is_idle(
     assert result == expect_value
 
 
+class Foo(Spider):
+    """Foo spider"""
+
+    async def parse(self, response: Response) -> typing.Any:
+        pass
+
+
+@pytest.fixture()
+def foo_spider():
+    yield Foo(name='test', start_urls=['https://example.com'])
+
+
 @pytest.mark.asyncio
-async def test_spider_run(mocker, execute_engine):
-    """"""
-    mocker.patch.object(asyncio, 'sleep')
-    crawl = mocker.patch.object(ExecuteEngine, 'crawl')
-    spider = Spider(name='test', start_urls=['https://example.com'])
-    execute_engine.open_spider(spider)
-    await execute_engine.start()
-    crawl.assert_called_once()
+async def test_open_spider(mocker, execute_engine):
+    """test spider run"""
+    loop_call = mocker.patch.object(execute_engine, 'loop_call')
+    open_spider = mocker.patch.object(Foo, 'open_spider')
+    # 注意：这里不能使用 foo_spider 的 fixture 。因为它会先将 open_spider 绑定到事件上，
+    # 导致上面一行的逻辑无法 Mock 到 open_spider 。
+    spider = Foo(name='test', start_urls=['https://example.com'])
+    await execute_engine.open_spider(spider)
+
+    loop_call.assert_called_once()
+    open_spider.assert_called_once()
 
 
 @pytest.mark.asyncio
 async def test_close(event_loop, execute_engine):
+    """test close"""
+
     async def close():
         await asyncio.sleep(0.001)
         await execute_engine.close()
@@ -156,3 +178,12 @@ async def test_close(event_loop, execute_engine):
     close_task = event_loop.create_task(close())
     await execute_engine.start()
     await close_task
+
+
+@pytest.mark.asyncio
+async def test_spider_run(mocker, execute_engine, foo_spider):
+    """test spider run"""
+    parse = mocker.patch.object(Foo, 'parse')
+    await execute_engine.open_spider(foo_spider)
+    await execute_engine.start()
+    parse.assert_called_once()

@@ -1,6 +1,7 @@
 """
 Spider
 """
+import abc
 import logging
 import typing
 
@@ -10,7 +11,7 @@ from crawlerstack_proxypool.crawler.req_resp import RequestProxy
 from crawlerstack_proxypool.signals import spider_opened, spider_closed
 
 
-class Spider:
+class Spider(metaclass=abc.ABCMeta):
     """
     Base spider class
     """
@@ -28,9 +29,10 @@ class Spider:
             setattr(self, k, v)
 
         self.logger = logging.getLogger(self.name)
-
-        spider_opened.connect(self.open_spider, sender=self)  # 将 open_spider 方法绑定到 spider 的 spider_opened 信号上
-        spider_closed.connect(self.close_spider, sender=self)  # 将 close_spider 方法绑定到 spider 的 spider_closed 信号上
+        # 将 open_spider 方法绑定到 spider 的 spider_opened 信号上
+        spider_opened.connect(self.open_spider, sender=self)
+        # 将 close_spider 方法绑定到 spider 的 spider_closed 信号上
+        spider_closed.connect(self.close_spider, sender=self)
 
     def start_requests(self) -> typing.Iterator[RequestProxy]:
         """
@@ -49,6 +51,7 @@ class Spider:
         req = RequestProxy(method='GET', url=url)
         return req
 
+    @abc.abstractmethod
     async def parse(self, response: Response) -> typing.Any:
         """
         解析逻辑

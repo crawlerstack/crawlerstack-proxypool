@@ -49,7 +49,7 @@ async def db(migrate) -> Database:
 async def engine(settings):
     engine: AsyncEngine = create_async_engine(
         # 'mysql+pymysql://root:000000@localhost/proxypool',
-        settings.DB_URL,
+        settings.DATABASE,
         echo=True,
     )
     try:

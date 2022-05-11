@@ -1,3 +1,4 @@
+"""service"""
 import dataclasses
 import logging
 from typing import AsyncIterable, ClassVar, Iterable
@@ -6,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from yarl import URL
 
 from crawlerstack_proxypool.common.checker import CheckedProxy
-from crawlerstack_proxypool.crawler.req_resp import RequestProxy
 from crawlerstack_proxypool.message import Message
 from crawlerstack_proxypool.models import ProxyStatusModel
 from crawlerstack_proxypool.repositories import (BaseRepository,
@@ -20,6 +20,9 @@ logger = logging.getLogger(__name__)
 
 @dataclasses.dataclass
 class CRUDMixin:  # noqa
+    """
+    CRUD mixin
+    """
 
     @property
     def repository(self) -> BaseRepository:
@@ -27,30 +30,55 @@ class CRUDMixin:  # noqa
         raise NotImplementedError()
 
     async def get_all(self):
+        """Get all objects"""
         return await self.repository.get_all()
 
     async def get_by_id(self, pk: int):
+        """
+        Get by id.
+        :param pk:
+        :return:
+        """
         return await self.repository.get_by_id(pk)
 
     async def create(self, /, **kwargs):
+        """
+        Create object
+        :param kwargs:
+        :return:
+        """
         return await self.repository.create(**kwargs)
 
     async def update(self, pk: int, **kwargs):
+        """
+        Update object
+        :param pk:
+        :param kwargs:
+        :return:
+        """
         return await self.repository.update(pk, **kwargs)
 
     async def delete(self, pk: int) -> None:
+        """
+        Delete object
+        :param pk:
+        :return:
+        """
         await self.repository.delete(pk)
 
     async def count(self) -> int:
+        """Count"""
         return await self.repository.count()
 
 
 @dataclasses.dataclass
 class BaseService:
+    """Base service"""
     _session: AsyncSession
 
 
 class IpProxyService(BaseService, CRUDMixin):
+    """Ip proxy service"""
 
     @property
     def repository(self):
@@ -58,14 +86,18 @@ class IpProxyService(BaseService, CRUDMixin):
 
 
 class ProxyStatusService(BaseService, CRUDMixin):
+    """Proxy status service"""
+
     @property
     def repository(self):
         return ProxyStatusRepository(self._session)
 
 
 @dataclasses.dataclass
-class ValidateService(BaseService):
-    """"""
+class ValidateSpiderService(BaseService):
+    """
+    验证 spider service
+    """
 
     _message: Message = dataclasses.field(default=Message(), init=False)
     _proxy_status_repo: ProxyStatusRepository = dataclasses.field(default=None, init=False)
@@ -73,36 +105,53 @@ class ValidateService(BaseService):
 
     @property
     def message(self):
+        """
+        message queue
+        :return:
+        """
         return self._message
 
     @property
     def proxy_status_repo(self) -> ProxyStatusRepository:
+        """proxy status repo"""
         if not self._proxy_status_repo:
             self._proxy_status_repo = ProxyStatusRepository(self._session)
         return self._proxy_status_repo
 
     @property
     def ip_proxy_repo(self) -> IpProxyRepository:
+        """ip proxy repo"""
         if not self._ip_proxy_repo:
             self._ip_proxy_repo = IpProxyRepository(self._session)
         return self._ip_proxy_repo
 
     async def start_urls(
-            self, dest: str,
+            self,
+            dest: str,
             sources: list[str] | None = None
     ) -> AsyncIterable[URL] | Iterable[URL]:
-        """"""
+        """
+        get start_urls.
+
+        if has sources, get urls from db, else get urls from queue.
+        :param dest:
+        :param sources:
+        :return:
+        """
         if sources:
             # 返回结果，不能返回生成器对象，要不然会超出 session 范围
             return await self.get_from_repository(sources)
-        else:
-            # 返回生成器对象
-            return self.get_from_message(dest)
+        # 返回生成器对象
+        return self.get_from_message(dest)
 
     async def get_from_repository(self, sources: list[str]) -> list[URL]:
-        """"""
+        """
+        get urls from repository
+        :param sources:
+        :return:
+        """
         proxies = await self.proxy_status_repo.get_by_names(*sources)
-        logger.debug(f'Get {len(proxies)} proxy from db.')
+        logger.debug('Get %d proxy from db.', len(proxies))
         result = []
         for status in proxies:
             proxy = status.ip_proxy
@@ -110,7 +159,7 @@ class ValidateService(BaseService):
                 URL.build(scheme=proxy.schema, host=proxy.ip, port=proxy.port)
             )
         else:
-            logger.debug(f'No proxy in db, to trigger validate proxy task with "{sources}"')
+            logger.debug('No proxy in db, to trigger validate proxy task with "%s"', sources)
             await start_validate_proxy.send(sources=sources)
         return result
 
@@ -123,7 +172,7 @@ class ValidateService(BaseService):
         """
         has_data = False
         name = f'proxypool:{dest}'
-        logger.debug(f'Getting seed from message with "{name}"')
+        logger.debug('Getting seed from message with "%s"', name)
         while True:
             result = await self.message.pop(name)
             if not result:
@@ -133,7 +182,7 @@ class ValidateService(BaseService):
                 yield URL(i)
             has_data = True
         if not has_data:
-            logger.debug(f'No seed in message with "{name}", to trigger fetch proxy task.')
+            logger.debug('No seed in message with "%s", to trigger fetch proxy task.', name)
             await start_fetch_proxy.send()
 
     async def update_proxy_status(self, pk: int, update_count: int) -> ProxyStatusModel | None:
@@ -152,10 +201,9 @@ class ValidateService(BaseService):
                 proxy_status.id,
                 alive_count=alive_count,
             )
-        else:
-            # 当计算后的 alive_count 小于0，则删除
-            logger.debug(f'{proxy_status}" is dead, so delete it.')
-            await self.proxy_status_repo.delete(proxy_status.id)
+        # 当计算后的 alive_count 小于0，则删除
+        logger.debug('"%s" is dead, so delete it.', proxy_status)
+        await self.proxy_status_repo.delete(proxy_status.id)
 
     async def save(self, proxy: CheckedProxy, dest: str):
         """
@@ -182,26 +230,26 @@ class ValidateService(BaseService):
         )
         await self.update_proxy_status(proxy_status.id, proxy.alive_status)
 
-    async def error_handler(self, reqeust: RequestProxy, exception: Exception, dest: str):
+    async def decrease(self, proxy: URL, dest: str):
         """
         请求时的异常处理，此时应该对 proxy 减分。
 
         对于 http/https 初次校验的，数据库中没有记录，就需要忽略。
 
         :param dest:
-        :param reqeust:
-        :param exception:
+        :param proxy:
         :return:
         """
 
-        proxy = reqeust.proxy
         checked_proxy = CheckedProxy(proxy, alive=False)
         await self.save(checked_proxy, dest=dest)
 
 
 @dataclasses.dataclass
-class FetchService(BaseService):
-    """"""
+class FetchSpiderService(BaseService):
+    """
+    Fetch spider service
+    """
     message: ClassVar[Message] = Message()
     dest: list[str]
 

@@ -1,17 +1,27 @@
-from aiohttp import ClientRequest
+"""
+exception
+"""
+from crawlerstack_proxypool.crawler.req_resp import RequestProxy
 
 
 class CrawlerStackProxyPoolError(Exception):
-    """"""
+    """
+    异常基类
+    """
 
 
 class SpiderError(CrawlerStackProxyPoolError):
-    """"""
+    """
+    spider error
+    """
 
 
 class SpiderRequestError(CrawlerStackProxyPoolError):
+    """
+    spider request error
+    """
 
-    def __init__(self, request: ClientRequest, exception):
+    def __init__(self, request: RequestProxy, exception):
         self._request = request
         self.exception = exception
 
@@ -20,8 +30,12 @@ class SpiderRequestError(CrawlerStackProxyPoolError):
 
 
 class MaxRetryError(SpiderError):
-    """"""
+    """
+    max retry error
+    """
 
 
 class ObjectDoesNotExist(CrawlerStackProxyPoolError):
-    """"""
+    """
+    object does not exist.
+    """
