@@ -10,6 +10,7 @@ from crawlerstack_proxypool.crawler.downloader import Downloader
 from crawlerstack_proxypool.crawler.req_resp import RequestProxy
 from crawlerstack_proxypool.crawler.scraper import Scraper
 from crawlerstack_proxypool.crawler.spider import Spider
+from crawlerstack_proxypool.signals import spider_opened, spider_closed
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +71,7 @@ class ExecuteEngine:
             self._closed.set_result('Closed.')
         logger.debug('Stopped execution engine.')
 
-    def open_spider(self, spider):
+    async def open_spider(self, spider):
         """
         Open spider.
         :param spider:
@@ -78,6 +79,7 @@ class ExecuteEngine:
         """
         self._spider = spider
         self._start_requests = self._spider.start_requests()
+        await spider_opened.send(sender=self._spider)
         self._next_request_task = self.loop.create_task(self.loop_call(5))
 
     async def loop_call(self, delay: float):
@@ -178,5 +180,6 @@ class ExecuteEngine:
         :return:
         """
         if self.spider_is_idle():
-            logger.debug('Engine is idle.')
+            logger.debug('Engine is idle, to close...')
+            await spider_closed.send(sender=self._spider)
             await self.stop()

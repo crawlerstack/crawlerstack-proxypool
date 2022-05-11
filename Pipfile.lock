@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "0398c333cd19a1a0c822191210d2f9d8e4a222267329fbadc803abcab64b677d"
+            "sha256": "8de885d36b96604d0596f180cb6230a0935a0258f316e5d4dc9c02911c303584"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -16,13 +16,21 @@
         ]
     },
     "default": {
-        "aiomysql": {
+        "aio-pydispatch": {
             "hashes": [
-                "sha256:357ec32500553e1e5be7b0ed47345f96c5e5bfd63f245d6e28ee25d98011226f",
-                "sha256:ef04453a3a3ecbd670f813e09d3944d15845b572b34caef3ff715c0140e1ae21"
+                "sha256:771a7cedf976a869e6bede9bfa3655e64e86848abc810f5c353e9cfd83e03e9b",
+                "sha256:e17a8654a106110f794e1d0b3e933f69458c9a21b8e937f4d7fa7bb77d6ee4e4"
             ],
             "index": "aliyun",
-            "version": "==0.1.0"
+            "version": "==1.0.0"
+        },
+        "aiomysql": {
+            "hashes": [
+                "sha256:0d686c4fdae6b67d1825d8be60fa3b0e644fca2c84d3c936d850fc259c8e107e",
+                "sha256:b66fa1481ca71c5ee0d933ec3abf51f6136543a3710ba80b134eb33da7ed6f13"
+            ],
+            "index": "aliyun",
+            "version": "==0.1.1"
         },
         "aioredis": {
             "hashes": [
@@ -380,11 +388,11 @@
     "develop": {
         "astroid": {
             "hashes": [
-                "sha256:561dc6015eecce7e696ff7e3b40434bc56831afeff783f0ea853e19c4f635c06",
-                "sha256:da0632b7c046d8361dfe1b1abb2e085a38624961fabe2997565a9c06c1be9d9a"
+                "sha256:14ffbb4f6aa2cf474a0834014005487f7ecd8924996083ab411e7fa0b508ce0b",
+                "sha256:f4e4ec5294c4b07ac38bab9ca5ddd3914d4bf46f9006eb5c0ae755755061044e"
             ],
             "markers": "python_full_version >= '3.6.2'",
-            "version": "==2.11.4"
+            "version": "==2.11.5"
         },
         "atomicwrites": {
             "hashes": [
@@ -635,7 +643,7 @@
                 "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc",
                 "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"
             ],
-            "markers": "python_version < '3.11'",
+            "markers": "python_version >= '3.7'",
             "version": "==2.0.1"
         },
         "tox": {

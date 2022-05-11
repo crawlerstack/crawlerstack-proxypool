@@ -17,6 +17,7 @@ aiomysql = "*"
 sqlalchemy = {extras = ["asyncio"], version = "*"}
 httpx = "*"
 yarl = "*"
+aio-pydispatch = "*"
 
 [dev-packages]
 isort = "*"

@@ -1,14 +1,16 @@
+"""
+Parser
+"""
 import dataclasses
 import ipaddress
 import json
 import logging
 from typing import Type, TypeVar
 
+from httpx import Response
 from lxml import etree
 from lxml.etree import Element
 
-from crawlerstack_proxypool.crawler.req_resp import ResponseProxy
-from crawlerstack_proxypool.crawler.spider import BaseParser as SpiderParser
 from crawlerstack_proxypool.crawler.spider import Spider
 
 logger = logging.getLogger(__name__)
@@ -42,48 +44,78 @@ class ParserKwargs:
 _KwargsType = TypeVar('_KwargsType', bound=ParserKwargs)
 
 
-class BaseParser(SpiderParser):
+class BaseParser:
+    """
+    抽象 parser 类
+    """
     KWARGS_KLS: Type[_KwargsType] = ParserKwargs
 
     def __init__(self, spider: Spider):
-        super().__init__(spider)
+        self.spider = spider
         self._kwargs = None
 
     @classmethod
     def from_kwargs(cls, spider: Spider, **kwargs):
+        """
+        从参数规范列表中初始化 parser
+        :param spider:
+        :param kwargs:
+        :return:
+        """
         obj = cls(spider)
         obj.init_kwargs(**kwargs)
         return obj
 
     def init_kwargs(self, **kwargs):
+        """
+        使用参数初始化参数对象
+        :param kwargs:
+        :return:
+        """
         self._kwargs = self.KWARGS_KLS(**kwargs)  # noqa
 
     @property
     def kwargs(self):
+        """
+        kwargs
+        :return:
+        """
         if self._kwargs is None:
             raise Exception(f'You should call {self.__class__}.init_kwargs to init kwargs first.')
         return self._kwargs
 
-    async def parse(self, response: ResponseProxy, **kwargs):
+    async def parse(self, response: Response, **kwargs):
+        """
+        解析逻辑
+        :param response:
+        :param kwargs:
+        :return:
+        """
         raise NotImplementedError()
 
 
 @dataclasses.dataclass
 class HtmlParserKwargs(ParserKwargs):
-    rows_rule: str | None = '//tr',
-    row_start: int | None = 1,
-    row_end: int | None = None,
-    columns_rule: str | None = 'td',
-    ip_position: int | None = 0,
-    port_position: int | None = 1,
-    ip_rule: str | None = 'text()',
-    port_rule: str | None = 'text()',
+    """
+    Html parser 参数
+    """
+    rows_rule: str | None = '//tr'
+    row_start: int | None = 1
+    row_end: int | None = None
+    columns_rule: str | None = 'td'
+    ip_position: int | None = 0
+    port_position: int | None = 1
+    ip_rule: str | None = 'text()'
+    port_rule: str | None = 'text()'
 
 
 class HtmlParser(BaseParser):
+    """
+    html parser
+    """
     KWARGS_KLS: Type[HtmlParserKwargs] = HtmlParserKwargs
 
-    async def parse(self, response: ResponseProxy, **kwargs):
+    async def parse(self, response: Response, **kwargs):
         html = etree.HTML(response.text)
         items = []
         rows = html.xpath(self._kwargs.rows_rule)[self._kwargs.row_start:]
@@ -127,12 +159,15 @@ class HtmlParser(BaseParser):
         # I'm not sure if it's going to cause anything else.
         # But I want to avoid a problem that could cause a program to fail
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(f'Parse row error {ex}. \n{row.get()}')
+            logger.warning(f'Parse row error %s. \n%s', ex, row.get())
         return None
 
 
 @dataclasses.dataclass
 class JsonParserKwargs:
+    """
+    Json parser 参数
+    """
     _ = dataclasses.KW_ONLY
     ip_key: str = 'ip'
     port_key: str = 'port'
@@ -143,7 +178,7 @@ class JsonParser(BaseParser):  # pylint: disable=too-few-public-methods
     name = 'json'
     KWARGS_KLS = JsonParserKwargs
 
-    async def parse(self, response: ResponseProxy, **kwargs) -> list[str]:
+    async def parse(self, response: Response, **kwargs) -> list[str]:
         """
         parse json response.
         :param response: scrapy response
@@ -163,6 +198,6 @@ class JsonParser(BaseParser):  # pylint: disable=too-few-public-methods
             # I'm not sure if it's going to cause anything else.
             # But I want to avoid a problem that could cause a program to fail
             except Exception as ex:  # pylint: disable=broad-except
-                logger.warning(f'Parse info error {ex}. \n{info}')
+                logger.warning('Parse info error %s. \n%s', ex, info)
 
         return items

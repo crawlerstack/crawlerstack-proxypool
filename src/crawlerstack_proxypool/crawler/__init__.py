@@ -17,5 +17,5 @@ class Crawler:
 
     async def crawl(self, **kwargs):
         obj = self.spider_kls(**kwargs)  # noqa
-        self._engine.open_spider(obj)
+        await self._engine.open_spider(obj)
         await self._engine.start()
