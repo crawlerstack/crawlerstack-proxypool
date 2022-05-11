@@ -1,60 +1,28 @@
+"""Spider"""
 import typing
+from typing import Generic, Type
 
 from httpx import Response
 
-from crawlerstack_proxypool.common import BaseParser
-from crawlerstack_proxypool.aio_scrapy.spider import Spider
+from crawlerstack_proxypool.aio_scrapy.spider import Spider as ScrapySpider
+from crawlerstack_proxypool.common.extractor import ExtractorType
 
 
-class BaseSpider(Spider):
+class Spider(ScrapySpider, Generic[ExtractorType]):
+    """spider"""
 
     def __init__(
             self,
             *, name: str,
             start_urls: list[str],
-            parser_kls: typing.Type[BaseParser],
+            parser_kls: Type[ExtractorType],
+            pipeline: typing.Callable,
             **kwargs
     ):
         super().__init__(name=name, start_urls=start_urls, **kwargs)
-        self.parser_kls = parser_kls
+        self.parser = parser_kls(self)
+        self.pipeline = pipeline
 
     async def parse(self, response: Response) -> typing.Any:
-        pass
-
-
-class ValidateSpider(Spider):
-    """
-    校验的 spider
-    """
-
-    def __init__(
-            self,
-            *,
-            name: str,
-            start_urls: list[str],
-            check_urls: list[str]
-    ):
-        super().__init__(name=name, start_urls=start_urls)
-        self.check_urls = check_urls
-
-    async def parse(self, response: Response) -> typing.Any:
-        pass
-
-
-class FetchSpider(Spider):
-    """
-    抓取网页的 Spider
-
-    通过配置中的 start url 抓取 IP，并写入目标位置。
-    """
-
-    def __init__(self,
-                 *,
-                 name: str,
-                 start_urls: list[str],
-                 **kwargs
-                 ):
-        super().__init__(name=name, start_urls=start_urls, **kwargs)
-
-    async def parse(self, response: Response) -> typing.Any:
-        pass
+        result = await self.parser.parse(response)
+        await self.pipeline(result)

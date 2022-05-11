@@ -3,11 +3,9 @@ Task
 """
 import asyncio
 import dataclasses
-import functools
 import logging
-from collections.abc import Callable
-from datetime import datetime
-from typing import Type, cast
+from datetime import datetime, timedelta
+from typing import Type
 
 import pytz
 from apscheduler.job import Job
@@ -15,16 +13,14 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy.ext.asyncio import AsyncSession
 from yarl import URL
 
-from crawlerstack_proxypool.common import ParserFactory
+from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
+from crawlerstack_proxypool.common import ParserFactory, BaseExtractor
 from crawlerstack_proxypool.common.checker import CheckedProxy
-from crawlerstack_proxypool.common.parser import BaseParser
 from crawlerstack_proxypool.config import settings
-from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
-from crawlerstack_proxypool.service import FetchSpiderService
-from crawlerstack_proxypool.spiders import FetchSpider, ValidateSpider
+from crawlerstack_proxypool.service import FetchSpiderService, ValidateSpiderService
 from crawlerstack_proxypool.db import session_provider
-from crawlerstack_proxypool.signals import (start_fetch_proxy,
-                                            start_validate_proxy)
+from crawlerstack_proxypool.signals import start_fetch_proxy, start_validate_proxy
+from crawlerstack_proxypool.spiders import Spider
 
 logger = logging.getLogger(__name__)
 
@@ -70,17 +66,18 @@ class TaskManager:
         """
         for config in fetch_config:
             name = config['name']
-            parser = config['parser']
+            parser = config['extractor']
             schedule = config['schedule']
             spider = FetchSpiderTask(
                 name=name,
                 urls=config['urls'],
-                parser_kls=ParserFactory(**parser).get_parser(),
+                parser_kls=ParserFactory(**parser).get_extractor(),
                 dest=config['dest']
             )
             task = self.scheduler.add_job(
                 func=spider.start,
                 name=name,
+                next_run_time=datetime.now() + timedelta(seconds=5),
                 **schedule,
             )
             self.fetch_jobs.append((name, task))
@@ -141,43 +138,49 @@ def trigger_job_run_now(job: Job):
     :param job:
     :return:
     """
-    logger.debug(f'Job "{job}" run next time: {job.next_run_time}, modifying run now.')
+    logger.debug('Job "%s" run next time: %s, modifying run now.', job, job.next_run_time)
     job.modify(next_run_time=datetime.now())
 
 
 @dataclasses.dataclass
 class FetchSpiderTask:
+    """
+    Fetch spider task
+    """
     name: str
     urls: list[str]
     dest: list[str]
-    parser_kls: Type[BaseParser] | None = None
+    parser_kls: Type[BaseExtractor] | None = None
 
     async def start_urls(self):
+        """start urls"""
         for url in self.urls:
             yield URL(url)
 
     @session_provider(auto_commit=True)
     async def save(self, proxy: list[URL], session: AsyncSession):
+        """save"""
         service = FetchSpiderService(session, self.dest)
         await service.save(proxy)
 
     async def start(self):
-        spider = FetchSpider(
+        """start"""
+        crawler = Crawler(Spider)
+        await crawler.crawl(
             name=self.name,
-            seeds=self.start_urls(),
+            start_urls=self.start_urls(),
             parser_kls=self.parser_kls,
-            pipeline_handler=functools.partial(self.save),
-
+            pipeline=self.save
         )
-        await spider.start()
 
 
 @dataclasses.dataclass
 class ValidateSpiderTask:
+    """Validate spider task"""
     name: str
     dest: str
     check_urls: list[str]
-    parser_kls: Type[BaseParser] | None = None
+    parser_kls: Type[BaseExtractor] | None = None
     sources: list[str] | None = dataclasses.field(default_factory=list)
 
     @session_provider(auto_commit=True)
@@ -186,13 +189,8 @@ class ValidateSpiderTask:
         :param session:
         :return:
         """
-        service = ValidateService(session)
+        service = ValidateSpiderService(session)
         return await service.start_urls(self.dest, self.sources)
-
-    @session_provider(auto_commit=True)
-    async def error_handler(self, reqeust: RequestProxy, exception: Exception, session: AsyncSession):
-        service = ValidateService(session)
-        await service.error_handler(reqeust, exception, self.dest)
 
     @session_provider(auto_commit=True)
     async def save(self, proxy: CheckedProxy, session: AsyncSession):
@@ -203,21 +201,18 @@ class ValidateSpiderTask:
         :param session:
         :return:
         """
-        service = ValidateService(session)
+        service = ValidateSpiderService(session)
         await service.save(proxy, self.dest)
 
     async def start(self):
         seeds = await self.start_urls()
-        spider = ValidateSpider(
+        crawler = Crawler(Spider)
+        await crawler.crawl(
             name=self.name,
-            seeds=seeds,
+            start_urls=seeds,
             check_urls=self.check_urls,
-            parser_kls=self.parser_kls,
-            # https://docs.python.org/zh-cn/3.10/library/typing.html#typing.cast
-            error_handler=cast(Callable, functools.partial(self.error_handler)),
-            pipeline_handler=functools.partial(self.save),
+            pipeline=self.save
         )
-        await spider.start()
 
 
 async def main():
@@ -227,6 +222,7 @@ async def main():
 
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
     loop = asyncio.new_event_loop()
     loop.create_task(main())
     loop.run_forever()

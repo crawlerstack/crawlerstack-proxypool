@@ -5,7 +5,7 @@ from typing import TypeVar
 
 from httpx import URL, Response
 
-from crawlerstack_proxypool.common.parser import BaseParser, ParserKwargs
+from crawlerstack_proxypool.common.extractor import BaseExtractor, ExtractorKwargs
 from crawlerstack_proxypool.aio_scrapy.downloader import DownloadHandler
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.spider import Spider
@@ -27,7 +27,7 @@ class CheckedProxy:
             self.alive_status = -1
 
 
-class BaseChecker(BaseParser):
+class BaseChecker(BaseExtractor):
     """
     抽象校验器
     """
@@ -48,7 +48,7 @@ _CheckerType = TypeVar('_CheckerType', bound=BaseChecker)
 
 
 @dataclasses.dataclass
-class KeywordCheckKwargs(ParserKwargs):
+class KeywordCheckKwargs(ExtractorKwargs):
     """
     关键字检查参数
     """
@@ -91,7 +91,7 @@ class KeywordChecker(BaseChecker):
 
 
 @dataclasses.dataclass
-class AnonymousKwargs(ParserKwargs):
+class AnonymousKwargs(ExtractorKwargs):
     """
     严格模式。
     """

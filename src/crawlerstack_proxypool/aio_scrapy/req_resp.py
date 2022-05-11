@@ -5,7 +5,7 @@ import typing
 from httpx import URL
 from httpx._client import UseClientDefault
 from httpx._types import (AuthTypes, CookieTypes, HeaderTypes, QueryParamTypes,
-                          RawURL, RequestContent, RequestData, RequestFiles)
+                          RawURL, RequestContent, RequestData, RequestFiles, ProxiesTypes)
 
 
 @dataclasses.dataclass(unsafe_hash=True, eq=False)
@@ -24,5 +24,6 @@ class RequestProxy:
     files: RequestFiles = None
     json: typing.Any = None
     extensions: dict = None
+    proxy: ProxiesTypes = None
     auth: typing.Union[AuthTypes, UseClientDefault] = None
     follow_redirects: typing.Union[bool, UseClientDefault] = True

@@ -27,6 +27,18 @@ fetch_task:
 #    schedule:
 #      trigger: interval
 #      seconds: 120
+  - name: 66ip
+    urls:
+      - http://www.66ip.cn/
+    extractor:
+      name: html
+      rows_rule: //div[@id="main"]//tr
+    dest:
+      - http
+      - https
+    schedule:
+      trigger: interval
+      seconds: 120
 
 validate_task:
 #  - name: http
@@ -51,15 +63,15 @@ validate_task:
 
 
   # check http self
-  - name: http
-    urls: ['http://httpbin.iclouds.work/ip']
-    sources: [http]
-    checker:
-      name: anonymous
-    dest: http
-    schedule:
-      trigger: interval
-      seconds: 10
+#  - name: http
+#    urls: ['http://httpbin.iclouds.work/ip']
+#    sources: [http]
+#    checker:
+#      name: anonymous
+#    dest: http
+#    schedule:
+#      trigger: interval
+#      seconds: 10
 
     # check https self
 #  - name: https

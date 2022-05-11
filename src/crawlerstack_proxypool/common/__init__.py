@@ -2,8 +2,8 @@ from typing import Type, cast
 
 from crawlerstack_proxypool.common.checker import (AnonymousChecker,
                                                    KeywordChecker)
-from crawlerstack_proxypool.common.parser import (BaseParser, HtmlParser,
-                                                  JsonParser)
+from crawlerstack_proxypool.common.extractor import (BaseExtractor, HtmlExtractor,
+                                                     JsonExtractor)
 
 
 class ParserFactory:
@@ -15,22 +15,22 @@ class ParserFactory:
         self.name = name
         self.kwargs = kwargs
 
-    def get_parser(self) -> Type[BaseParser]:
+    def get_extractor(self) -> Type[BaseExtractor]:
         """
         获取解析器
         :return:
         """
-        return cast(Type[BaseParser], ParserProxy(self.name, **self.kwargs))
+        return cast(Type[BaseExtractor], ExtractorParser(self.name, **self.kwargs))
 
-    def get_checker(self) -> Type[BaseParser]:
+    def get_checker(self) -> Type[BaseExtractor]:
         """
         获取校验器
         :return:
         """
-        return cast(Type[BaseParser], CheckerProxy(self.name, **self.kwargs))
+        return cast(Type[BaseExtractor], CheckParser(self.name, **self.kwargs))
 
 
-class BaseProxy:
+class Parser:
     """
     抽象代理
     """
@@ -47,26 +47,28 @@ class BaseProxy:
         """
         raise NotImplementedError()
 
-    def __call__(self, *args, **kwargs) -> BaseParser:
+    def __call__(self, *args, **kwargs) -> BaseExtractor:
         return self.kls.from_kwargs(*args, **kwargs, **self.kwargs)
 
 
-class ParserProxy(BaseProxy):
+class ExtractorParser(Parser):
     """
     解析器代理
     """
+
     def factory(self, name: str):
         if name == 'html':
-            return HtmlParser
+            return HtmlExtractor
         if name == 'json':
-            return JsonParser
+            return JsonExtractor
         raise Exception(f'"{name}" parse has not implement.')
 
 
-class CheckerProxy(BaseProxy):
+class CheckParser(Parser):
     """
     校验器代理
     """
+
     def factory(self, name: str):
         if name == 'keyword':
             return KeywordChecker

@@ -1,5 +1,5 @@
 """
-Parser
+Extractor
 """
 import abc
 import dataclasses
@@ -35,21 +35,21 @@ def proxy_check(ip_address: str, port: int) -> bool:
 
 
 @dataclasses.dataclass
-class ParserKwargs:
+class ExtractorKwargs:
     """
-    Default parse kwargs data class.
+    Default extractor kwargs data class.
     """
     _ = dataclasses.KW_ONLY
 
 
-_KwargsType = TypeVar('_KwargsType', bound=ParserKwargs)
+ExtractorKwargsType = TypeVar('ExtractorKwargsType', bound=ExtractorKwargs)
 
 
-class BaseParser(metaclass=abc.ABCMeta):
+class BaseExtractor(metaclass=abc.ABCMeta):
     """
-    抽象 parser 类
+    抽象 extractor 类
     """
-    KWARGS_KLS: Type[_KwargsType] = ParserKwargs
+    KWARGS_KLS: Type[ExtractorKwargsType] = ExtractorKwargs
 
     def __init__(self, spider: Spider):
         self.spider = spider
@@ -58,7 +58,7 @@ class BaseParser(metaclass=abc.ABCMeta):
     @classmethod
     def from_kwargs(cls, spider: Spider, **kwargs):
         """
-        从参数规范列表中初始化 parser
+        从参数规范列表中初始化 extractor
         :param spider:
         :param kwargs:
         :return:
@@ -96,10 +96,13 @@ class BaseParser(metaclass=abc.ABCMeta):
         raise NotImplementedError()
 
 
+ExtractorType = TypeVar('ExtractorType', bound=BaseExtractor)
+
+
 @dataclasses.dataclass
-class HtmlParserKwargs(ParserKwargs):
+class HtmlExtractorKwargs(ExtractorKwargs):
     """
-    Html parser 参数
+    Html extractor 参数
     """
     rows_rule: str | None = '//tr'
     row_start: int | None = 1
@@ -111,11 +114,11 @@ class HtmlParserKwargs(ParserKwargs):
     port_rule: str | None = 'text()'
 
 
-class HtmlParser(BaseParser):
+class HtmlExtractor(BaseExtractor):
     """
-    html parser
+    html extractor
     """
-    KWARGS_KLS: Type[HtmlParserKwargs] = HtmlParserKwargs
+    KWARGS_KLS: Type[HtmlExtractorKwargs] = HtmlExtractorKwargs
 
     async def parse(self, response: Response, **kwargs):
         html = etree.HTML(response.text)
@@ -166,19 +169,19 @@ class HtmlParser(BaseParser):
 
 
 @dataclasses.dataclass
-class JsonParserKwargs:
+class JsonExtractorKwargs:
     """
-    Json parser 参数
+    Json extractor 参数
     """
     _ = dataclasses.KW_ONLY
     ip_key: str = 'ip'
     port_key: str = 'port'
 
 
-class JsonParser(BaseParser):  # pylint: disable=too-few-public-methods
-    """Json response parser"""
+class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
+    """Json response extractor"""
     name = 'json'
-    KWARGS_KLS = JsonParserKwargs
+    KWARGS_KLS = JsonExtractorKwargs
 
     async def parse(self, response: Response, **kwargs) -> list[str]:
         """

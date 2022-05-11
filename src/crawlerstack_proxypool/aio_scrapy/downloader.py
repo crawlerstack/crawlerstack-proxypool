@@ -47,7 +47,9 @@ class DownloadHandler(BaseDownloadHandler):
         :param request:
         :return:
         """
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(
+                proxies=request.proxy,
+        ) as client:
             return await client.request(
                 method=request.method,
                 url=request.url,

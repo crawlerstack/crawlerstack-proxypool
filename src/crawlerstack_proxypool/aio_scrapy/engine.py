@@ -82,6 +82,7 @@ class ExecuteEngine:
         :param spider:
         :return:
         """
+        logger.info('Open spider: %s', spider.name)
         self._spider = spider
         self._start_requests = self._spider.start_requests()
         await spider_opened.send(sender=self._spider)
