@@ -1,7 +1,7 @@
 """
 exception
 """
-from crawlerstack_proxypool.crawler.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 
 
 class CrawlerStackProxyPoolError(Exception):

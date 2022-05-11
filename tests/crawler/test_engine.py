@@ -7,14 +7,29 @@ import typing
 import pytest
 from httpx import Response
 
-from crawlerstack_proxypool.crawler import ExecuteEngine, Spider
-from crawlerstack_proxypool.crawler.downloader import Downloader
-from crawlerstack_proxypool.crawler.scraper import Scraper
+from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
+from crawlerstack_proxypool.aio_scrapy.downloader import Downloader
+from crawlerstack_proxypool.aio_scrapy.engine import ExecuteEngine
+from crawlerstack_proxypool.aio_scrapy.scraper import Scraper
+from crawlerstack_proxypool.aio_scrapy.spider import Spider
+
+
+class Foo(Spider):
+    """Foo spider"""
+
+    async def parse(self, response: Response) -> typing.Any:
+        pass
 
 
 @pytest.fixture()
-async def execute_engine():
-    yield ExecuteEngine()
+def foo_spider():
+    yield Foo(name='test', start_urls=['https://httpbin.iclouds.work/ip'])
+
+
+@pytest.fixture()
+async def execute_engine(foo_spider):
+    crawler = Crawler(foo_spider)
+    yield ExecuteEngine(crawler)
 
 
 @pytest.fixture()
@@ -139,18 +154,6 @@ async def test_spider_is_idle(
     execute_engine._start_requests = start_requests
     result = execute_engine.spider_is_idle()
     assert result == expect_value
-
-
-class Foo(Spider):
-    """Foo spider"""
-
-    async def parse(self, response: Response) -> typing.Any:
-        pass
-
-
-@pytest.fixture()
-def foo_spider():
-    yield Foo(name='test', start_urls=['https://example.com'])
 
 
 @pytest.mark.asyncio

@@ -1,6 +1,6 @@
 import pytest
 
-from crawlerstack_proxypool.crawler.scraper import Scraper
+from crawlerstack_proxypool.aio_scrapy.scraper import Scraper
 
 
 @pytest.fixture()

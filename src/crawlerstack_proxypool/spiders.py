@@ -3,7 +3,7 @@ import typing
 from httpx import Response
 
 from crawlerstack_proxypool.common import BaseParser
-from crawlerstack_proxypool.crawler import Spider
+from crawlerstack_proxypool.aio_scrapy.spider import Spider
 
 
 class BaseSpider(Spider):

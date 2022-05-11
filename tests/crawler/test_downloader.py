@@ -1,8 +1,8 @@
 """Test downloader"""
 import pytest
 
-from crawlerstack_proxypool.crawler.downloader import Downloader, DownloadHandler
-from crawlerstack_proxypool.crawler.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.downloader import Downloader, DownloadHandler
+from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 
 
 @pytest.fixture()

@@ -1,6 +1,6 @@
 import pytest
 
-from crawlerstack_proxypool.common import AnonymousChecker, ParserFactory
+from crawlerstack_proxypool.common import ParserFactory
 from crawlerstack_proxypool.task import ValidateSpiderTask
 
 

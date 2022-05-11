@@ -6,11 +6,14 @@ import dataclasses
 import logging
 import typing
 
-from crawlerstack_proxypool.crawler.downloader import Downloader
-from crawlerstack_proxypool.crawler.req_resp import RequestProxy
-from crawlerstack_proxypool.crawler.scraper import Scraper
-from crawlerstack_proxypool.crawler.spider import Spider
+from crawlerstack_proxypool.aio_scrapy.downloader import Downloader
+from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.scraper import Scraper
+from crawlerstack_proxypool.aio_scrapy.spider import Spider
 from crawlerstack_proxypool.signals import spider_opened, spider_closed
+
+if typing.TYPE_CHECKING:
+    from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +23,12 @@ class ExecuteEngine:
     """
     Crawler engine
     """
+    crawler: 'Crawler'
     _spider: Spider = dataclasses.field(init=False)
     _running: bool = dataclasses.field(default=False, init=False)
     _closed: asyncio.Future = dataclasses.field(default=None, init=False)
     _next_request_task: asyncio.Task | None = dataclasses.field(default=None, init=False)
-    _downloader: Downloader = dataclasses.field(default_factory=Downloader, init=False)
+    _downloader: Downloader = dataclasses.field(init=False)
     _scraper: Scraper = dataclasses.field(default_factory=Scraper, init=False)
     _start_requests: typing.Iterator[RequestProxy] | None = dataclasses.field(default=None, init=False)
     _processing_requests_queue: asyncio.Queue = dataclasses.field(init=False)
@@ -32,6 +36,7 @@ class ExecuteEngine:
     def __post_init__(self):
         self._closed = asyncio.Future()
         self._processing_requests_queue = asyncio.Queue(10)
+        self._downloader = Downloader(self.crawler.settings)
 
     @property
     def loop(self) -> asyncio.AbstractEventLoop:
@@ -136,7 +141,7 @@ class ExecuteEngine:
         :return:
         """
         try:
-            download_task = await self._downloader.enqueue(request)
+            download_task = await self._downloader.enqueue(request, self._spider)
             response = await download_task
 
             if response:

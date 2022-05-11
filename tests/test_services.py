@@ -5,7 +5,7 @@ from yarl import URL
 
 from crawlerstack_proxypool.models import ProxyStatusModel
 from crawlerstack_proxypool.repositories import ProxyStatusRepository
-from crawlerstack_proxypool.service import ValidateService
+from crawlerstack_proxypool.service import ValidateSpiderService
 
 
 class TestProxyStatusRepository:
@@ -26,7 +26,7 @@ class TestValidateService:
     @pytest.fixture
     async def service(self, db):
         async with db.session as session:
-            yield ValidateService(session)
+            yield ValidateSpiderService(session)
 
     @pytest.mark.parametrize(
         'sources',
@@ -38,8 +38,8 @@ class TestValidateService:
             for i in range(1):
                 yield URL(f'https://example.com/{i}')
 
-        mocker.patch.object(ValidateService, 'get_from_message', return_value=foo())
-        mocker.patch.object(ValidateService, 'get_from_repository', return_value=['https://example.com'])
+        mocker.patch.object(ValidateSpiderService, 'get_from_message', return_value=foo())
+        mocker.patch.object(ValidateSpiderService, 'get_from_repository', return_value=['https://example.com'])
         result = await service.start_urls('https', sources)
         if sources:
             assert isinstance(result, Iterable)

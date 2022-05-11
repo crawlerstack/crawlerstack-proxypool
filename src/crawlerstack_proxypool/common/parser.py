@@ -12,7 +12,7 @@ from httpx import Response
 from lxml import etree
 from lxml.etree import Element
 
-from crawlerstack_proxypool.crawler.spider import Spider
+from crawlerstack_proxypool.aio_scrapy.spider import Spider
 
 logger = logging.getLogger(__name__)
 

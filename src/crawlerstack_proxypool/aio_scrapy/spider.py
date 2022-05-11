@@ -7,7 +7,7 @@ import typing
 
 from httpx import URL, Response
 
-from crawlerstack_proxypool.crawler.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.signals import spider_opened, spider_closed
 
 
