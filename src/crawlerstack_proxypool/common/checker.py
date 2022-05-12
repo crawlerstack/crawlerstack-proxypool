@@ -179,7 +179,7 @@ class AnonymousChecker(BaseChecker):
         if not self._public_ip:
             await self.get_public_ip()
         alive = False
-        proxy = response.request.headers.get('proxy')
+        proxy: URL = response.request.extensions.get('proxy')
         if response.status_code:
             if self._public_ip not in response.text:
                 if self.kwargs.strict and proxy.host in response.text:

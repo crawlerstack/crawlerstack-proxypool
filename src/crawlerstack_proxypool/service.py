@@ -156,9 +156,9 @@ class ValidateSpiderService(BaseService):
         for status in proxies:
             proxy = status.ip_proxy
             result.append(
-                URL.build(scheme=proxy.schema, host=proxy.ip, port=proxy.port)
+                URL(scheme=proxy.schema, host=proxy.ip, port=proxy.port)
             )
-        else:
+        if not result:
             logger.debug('No proxy in db, to trigger validate proxy task with "%s"', sources)
             await start_validate_proxy.send(sources=sources)
         return result

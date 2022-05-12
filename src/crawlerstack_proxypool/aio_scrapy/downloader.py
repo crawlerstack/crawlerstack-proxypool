@@ -62,6 +62,7 @@ class DownloadHandler(BaseDownloadHandler):
                 cookies=request.cookies,
                 auth=request.auth,
                 follow_redirects=request.follow_redirects,
+                extensions={'proxy': request.proxy}
             )
 
     async def close(self):

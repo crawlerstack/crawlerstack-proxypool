@@ -129,6 +129,7 @@ class MiddlewareManager(Generic[MiddlewareType]):
         """
         for method in self.methods['process_exception']:
             await method(exception, request, spider)
+        raise exception
 
 
 class DownloadMiddlewareManager(MiddlewareManager[DownloadMiddleware]):

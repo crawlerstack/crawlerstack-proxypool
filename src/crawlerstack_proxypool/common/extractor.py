@@ -133,10 +133,10 @@ class HtmlExtractor(BaseExtractor):
                 continue
             proxy_ip = self.parse_row(row=row)
             if proxy_ip:
-                items.append(proxy_ip)
+                items.extend(proxy_ip)
         return items
 
-    def parse_row(self, row: Element) -> str | None:
+    def parse_row(self, row: Element) -> list[str] | None:
         """
         parse a row
         :param row:
@@ -161,7 +161,10 @@ class HtmlExtractor(BaseExtractor):
             else:
                 proxy_ip = row_html
             if proxy_ip and proxy_check(*proxy_ip.split(':')):
-                return proxy_ip
+                return [
+                    f'http://{proxy_ip}',
+                    f'https://{proxy_ip}'
+                ]
         # I'm not sure if it's going to cause anything else.
         # But I want to avoid a problem that could cause a program to fail
         except Exception as ex:  # pylint: disable=broad-except

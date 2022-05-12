@@ -5,7 +5,7 @@ import asyncio
 import dataclasses
 import logging
 import typing
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, AsyncGenerator
 
 from crawlerstack_proxypool.aio_scrapy.downloader import Downloader
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
@@ -31,7 +31,7 @@ class ExecuteEngine:
     _next_request_task: asyncio.Task | None = dataclasses.field(default=None, init=False)
     _downloader: Downloader = dataclasses.field(init=False)
     _scraper: Scraper = dataclasses.field(default_factory=Scraper, init=False)
-    _start_requests: AsyncIterator[RequestProxy] | None = dataclasses.field(default=None, init=False)
+    _start_requests: AsyncGenerator[RequestProxy, None] | None = dataclasses.field(default=None, init=False)
     _processing_requests_queue: asyncio.Queue = dataclasses.field(init=False)
 
     def __post_init__(self):
@@ -116,7 +116,7 @@ class ExecuteEngine:
         Next request.
         :return:
         """
-        if self._start_requests is not None and not self.should_pass():
+        if self._start_requests is not None and not self.should_pass() and not self._start_requests.ag_running:
             try:
                 request = await self._start_requests.__anext__()
             except StopAsyncIteration:

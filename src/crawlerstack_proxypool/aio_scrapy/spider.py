@@ -5,7 +5,7 @@ import abc
 import inspect
 import logging
 import typing
-from collections.abc import Iterator, AsyncIterator
+from collections.abc import Iterator, AsyncIterator, AsyncGenerator
 
 from httpx import URL, Response
 
@@ -36,7 +36,7 @@ class Spider(metaclass=abc.ABCMeta):
         # 将 close_spider 方法绑定到 spider 的 spider_closed 信号上
         spider_closed.connect(self.close_spider, sender=self)
 
-    async def start_requests(self) -> AsyncIterator[RequestProxy]:
+    async def start_requests(self) -> AsyncGenerator[RequestProxy]:
         """
         起始 requests
         :return:

@@ -1,7 +1,7 @@
 from typing import AsyncIterable, Iterable
 
 import pytest
-from yarl import URL
+from httpx import URL
 
 from crawlerstack_proxypool.models import ProxyStatusModel
 from crawlerstack_proxypool.repositories import ProxyStatusRepository

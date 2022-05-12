@@ -27,18 +27,18 @@ fetch_task:
 #    schedule:
 #      trigger: interval
 #      seconds: 120
-  - name: 66ip
-    urls:
-      - http://www.66ip.cn/
-    extractor:
-      name: html
-      rows_rule: //div[@id="main"]//tr
-    dest:
-      - http
-      - https
-    schedule:
-      trigger: interval
-      seconds: 120
+#  - name: 66ip
+#    urls:
+#      - http://www.66ip.cn/
+#    extractor:
+#      name: html
+#      rows_rule: //div[@id="main"]//tr
+#    dest:
+#      - http
+#      - https
+#    schedule:
+#      trigger: interval
+#      seconds: 120
 
 validate_task:
 #  - name: http
