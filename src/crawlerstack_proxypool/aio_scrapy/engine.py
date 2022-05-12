@@ -5,6 +5,7 @@ import asyncio
 import dataclasses
 import logging
 import typing
+from collections.abc import AsyncIterator
 
 from crawlerstack_proxypool.aio_scrapy.downloader import Downloader
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
@@ -30,7 +31,7 @@ class ExecuteEngine:
     _next_request_task: asyncio.Task | None = dataclasses.field(default=None, init=False)
     _downloader: Downloader = dataclasses.field(init=False)
     _scraper: Scraper = dataclasses.field(default_factory=Scraper, init=False)
-    _start_requests: typing.Iterator[RequestProxy] | None = dataclasses.field(default=None, init=False)
+    _start_requests: AsyncIterator[RequestProxy] | None = dataclasses.field(default=None, init=False)
     _processing_requests_queue: asyncio.Queue = dataclasses.field(init=False)
 
     def __post_init__(self):
@@ -97,7 +98,7 @@ class ExecuteEngine:
         await asyncio.sleep(delay)
         if self._closed.done():
             return
-        await self.next_request()
+        self.loop.create_task(self.next_request())
         await self.loop_call(delay)
 
     async def close_spider(self):
@@ -117,8 +118,8 @@ class ExecuteEngine:
         """
         if self._start_requests is not None and not self.should_pass():
             try:
-                request = next(self._start_requests)
-            except StopIteration:
+                request = await self._start_requests.__anext__()
+            except StopAsyncIteration:
                 self._start_requests = None
             else:
                 await self.crawl(request)

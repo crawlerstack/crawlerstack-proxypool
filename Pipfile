@@ -16,8 +16,8 @@ lxml = "*"
 aiomysql = "*"
 sqlalchemy = {extras = ["asyncio"], version = "*"}
 httpx = "*"
-yarl = "*"
 aio-pydispatch = "*"
+alembic = "*"
 
 [dev-packages]
 isort = "*"

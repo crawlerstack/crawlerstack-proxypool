@@ -2,8 +2,10 @@
 Spider
 """
 import abc
+import inspect
 import logging
 import typing
+from collections.abc import Iterator, AsyncIterator
 
 from httpx import URL, Response
 
@@ -20,7 +22,7 @@ class Spider(metaclass=abc.ABCMeta):
             self,
             *,
             name: str,
-            start_urls: list[str],
+            start_urls: list[str] | Iterator[str] | AsyncIterator[str],
             **kwargs,
     ):
         self.name = name
@@ -34,13 +36,17 @@ class Spider(metaclass=abc.ABCMeta):
         # 将 close_spider 方法绑定到 spider 的 spider_closed 信号上
         spider_closed.connect(self.close_spider, sender=self)
 
-    def start_requests(self) -> typing.Iterator[RequestProxy]:
+    async def start_requests(self) -> AsyncIterator[RequestProxy]:
         """
         起始 requests
         :return:
         """
-        for i in self.start_urls:
-            yield self._make_request(i)
+        if inspect.isasyncgen(self.start_urls):
+            async for i in self.start_urls:
+                yield self._make_request(i)
+        else:
+            for i in self.start_urls:
+                yield self._make_request(i)
 
     def _make_request(self, url: URL | str) -> RequestProxy:  # noqa
         """

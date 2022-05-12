@@ -128,7 +128,7 @@ class HtmlExtractor(BaseExtractor):
             rows = rows[:self._kwargs.row_end]
 
         for row in rows:
-            row_html = row.get()
+            row_html = etree.tostring(row).decode()
             if '透明' in row_html or 'transparent' in row_html.lower():
                 continue
             proxy_ip = self.parse_row(row=row)
@@ -142,29 +142,30 @@ class HtmlExtractor(BaseExtractor):
         :param row:
         :return: 127.0.0.1:1080 / ''
         """
+        row_html = etree.tostring(row).decode()
         try:
             proxy_ip = ''
             if self._kwargs.columns_rule:
                 columns = row.xpath(self._kwargs.columns_rule)
                 if columns:
                     _ip = columns[self._kwargs.ip_position]
-                    proxy_ip = _ip.get()
+                    proxy_ip = _ip.text
                     if self._kwargs.ip_rule:
-                        proxy_ip = _ip.xpath(self._kwargs.ip_rule).get()
+                        proxy_ip = _ip.xpath(self._kwargs.ip_rule)[0]
                     if self._kwargs.port_position:
                         port = columns[self._kwargs.port_position]
-                        port_str = port.get()
+                        port_str = port.text
                         if self._kwargs.port_rule:
-                            port_str = port.xpath(self._kwargs.port_rule).get()
+                            port_str = port.xpath(self._kwargs.port_rule)[0]
                         proxy_ip = f'{proxy_ip}:{port_str}'
             else:
-                proxy_ip = row.get()
+                proxy_ip = row_html
             if proxy_ip and proxy_check(*proxy_ip.split(':')):
                 return proxy_ip
         # I'm not sure if it's going to cause anything else.
         # But I want to avoid a problem that could cause a program to fail
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(f'Parse row error %s. \n%s', ex, row.get())
+            logger.warning('Parse row error %s. \n%s', ex, row_html)
         return None
 
 

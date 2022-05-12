@@ -10,8 +10,8 @@ from typing import Type
 import pytz
 from apscheduler.job import Job
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from httpx import URL
 from sqlalchemy.ext.asyncio import AsyncSession
-from yarl import URL
 
 from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
 from crawlerstack_proxypool.common import ParserFactory, BaseExtractor
@@ -20,7 +20,7 @@ from crawlerstack_proxypool.config import settings
 from crawlerstack_proxypool.service import FetchSpiderService, ValidateSpiderService
 from crawlerstack_proxypool.db import session_provider
 from crawlerstack_proxypool.signals import start_fetch_proxy, start_validate_proxy
-from crawlerstack_proxypool.spiders import Spider
+from crawlerstack_proxypool.spiders import Spider, ValidateSpider
 
 logger = logging.getLogger(__name__)
 
@@ -206,11 +206,12 @@ class ValidateSpiderTask:
 
     async def start(self):
         seeds = await self.start_urls()
-        crawler = Crawler(Spider)
+        crawler = Crawler(ValidateSpider)
         await crawler.crawl(
             name=self.name,
             start_urls=seeds,
             check_urls=self.check_urls,
+            parser_kls=self.parser_kls,
             pipeline=self.save
         )
 
@@ -223,6 +224,7 @@ async def main():
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
+    logging.getLogger('apscheduler').setLevel(logging.DEBUG)
     loop = asyncio.new_event_loop()
     loop.create_task(main())
     loop.run_forever()

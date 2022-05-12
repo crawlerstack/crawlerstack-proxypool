@@ -3,8 +3,8 @@ import dataclasses
 import logging
 from typing import AsyncIterable, ClassVar, Iterable
 
+from httpx import URL
 from sqlalchemy.ext.asyncio import AsyncSession
-from yarl import URL
 
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.message import Message
