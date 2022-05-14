@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 
 from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import IpProxyModel
+from crawlerstack_proxypool.models import IpProxyModel, ProxyStatusModel
 from crawlerstack_proxypool.repositories import (IpProxyRepository,
                                                  ProxyStatusRepository)
 
@@ -92,6 +92,44 @@ async def test_delete(repo, init_ip_proxy):
     assert before_count - 1 == after_count
 
 
+class TestIpProxyRepository:
+
+    @pytest.fixture()
+    async def repo(self, db: Database):
+        """repo fixture"""
+        async with db.session as session:
+            yield IpProxyRepository(session)
+
+    @pytest.mark.parametrize(
+        'usage, limit, port, expect_value',
+        [
+            (None, None, None, 2),
+            ('http', None, None, 1),
+            ('https', None, None, 1),
+            ('alibaba', None, None, 2),
+            ('alibaba', 1, None, 1),
+            ('alibaba', None, 1081, 1),
+        ]
+    )
+    @pytest.mark.asyncio
+    async def test_get(self, repo, session, init_proxy_status, usage, limit, port, expect_value):
+        """test get"""
+        kwargs = {
+            'usage': usage,
+            'limit': limit
+        }
+        if port is not None:
+            kwargs.setdefault('port', port)
+        result = await repo.get(**kwargs)
+        assert len(result) == expect_value
+
+        # 测试返回结果是不是倒序
+        if expect_value > 1 and usage is not None:
+            obj1 = await session.scalar(select(ProxyStatusModel).filter(ProxyStatusModel.proxy_id == result[0].id))
+            obj2 = await session.scalar(select(ProxyStatusModel).filter(ProxyStatusModel.proxy_id == result[1].id))
+            assert obj1.alive_count > obj2.alive_count
+
+
 class TestProxyStatusRepository:
     """test proxy status repository"""
 
@@ -109,7 +147,3 @@ class TestProxyStatusRepository:
         # used joinedload
         obj = res[0]
         assert obj.ip_proxy
-
-    # @pytest.mark.asyncio
-    # async def test_get_by_ip(self, proxy_status_service, init_proxy_status):
-    #     await proxy_status_service.get_by_name_ip('127.0.0.1')

@@ -138,6 +138,36 @@ class IpProxyRepository(BaseRepository[models.IpProxyModel]):
     def model(self):
         return models.IpProxyModel
 
+    async def get(
+            self,
+            /,
+            usage: str = None,
+            limit: int = None,
+            **kwargs,
+    ) -> list[ModelType]:
+        """
+        根据条件获取
+        :param usage:
+        :param limit:
+        :param kwargs:  Obj 的基本属性
+        :return:
+        """
+        and_condition = [getattr(self.model, k) == v for k, v in kwargs.items()]
+        stmt = select(self.model).filter(*and_condition)
+        if usage:
+            # 通过 name 过滤，
+            # 同时根据 ProxyStatusModel 的 alive_count 和 update_time 倒序返回
+            stmt = stmt.join(
+                self.model.proxy_status.and_(ProxyStatusModel.name == usage)
+            ).order_by(
+                ProxyStatusModel.alive_count.desc(),
+                ProxyStatusModel.update_time.desc(),
+            )
+        if limit:
+            stmt = stmt.limit(limit)
+        result = await self.session.scalars(stmt)
+        return result.all()
+
     async def get_by_uri(self, ip: str, port: int, schema: str):
         """
         通过 uri 获取对象

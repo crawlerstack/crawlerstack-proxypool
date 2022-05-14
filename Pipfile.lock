@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "73a1048f365b4d16330c0197b51a6589a15df75d12756ca95556d23ec72fc9c4"
+            "sha256": "4dee4044a5b45c822cd1f2b592d9810939c42426eb23f2b087aa60e365cd38e5"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -72,6 +72,14 @@
             "index": "aliyun",
             "version": "==3.9.1"
         },
+        "asgiref": {
+            "hashes": [
+                "sha256:45a429524fba18aba9d512498b19d220c4d628e75b40cf5c627524dbaebc5cc1",
+                "sha256:fddeea3c53fa99d0cdb613c3941cc6e52d822491fc2753fba25768fb5bf4e865"
+            ],
+            "markers": "python_version >= '3.7'",
+            "version": "==3.5.1"
+        },
         "async-timeout": {
             "hashes": [
                 "sha256:2163e1640ddb52b7a8c80d0a67a08587e5d245cc9c553a74a847056bc2976b15",
@@ -125,6 +133,14 @@
             ],
             "index": "aliyun",
             "version": "==0.1.11"
+        },
+        "fastapi": {
+            "hashes": [
+                "sha256:041d8935a13c8f22a7ef80c76d8eea54953c44476d7057e7734138ee8951b9dc",
+                "sha256:6dfa715a334d1fafedcea33d74c7382afd2ce123093f83be2f4e322e89d45e22"
+            ],
+            "index": "aliyun",
+            "version": "==0.77.1"
         },
         "greenlet": {
             "hashes": [
@@ -360,6 +376,14 @@
             "index": "aliyun",
             "version": "==1.4.36"
         },
+        "starlette": {
+            "hashes": [
+                "sha256:5a60c5c2d051f3a8eb546136aa0c9399773a689595e099e0877704d5888279bf",
+                "sha256:c6d21096774ecb9639acad41b86b7706e52ba3bf1dc13ea4ed9ad593d47e24c7"
+            ],
+            "markers": "python_version >= '3.6'",
+            "version": "==0.19.1"
+        },
         "stevedore": {
             "hashes": [
                 "sha256:a547de73308fd7e90075bb4d301405bebf705292fa90a90fc3bcf9133f58616c",
@@ -391,6 +415,14 @@
             ],
             "markers": "python_version >= '3.6'",
             "version": "==4.2"
+        },
+        "uvicorn": {
+            "hashes": [
+                "sha256:19e2a0e96c9ac5581c01eb1a79a7d2f72bb479691acd2b8921fce48ed5b961a6",
+                "sha256:5180f9d059611747d841a4a4c4ab675edf54c8489e97f96d0583ee90ac3bfc23"
+            ],
+            "index": "aliyun",
+            "version": "==0.17.6"
         }
     },
     "develop": {
@@ -431,11 +463,11 @@
                 "toml"
             ],
             "hashes": [
-                "sha256:03e2a7826086b91ef345ff18742ee9fc47a6839ccd517061ef8fa1976e652ce9",
-                "sha256:a2a8b8bcc399edb4347a5ca8b9b87e7524c0967b335fbb08a83c8421489ddee1"
+                "sha256:2781c43bffbbec2b8867376d4d61916f5e9c4cc168232528562a61d1b4b01879",
+                "sha256:6d4a6f30f611e657495cc81a07ff7aa8cd949144e7667c5d3e680d73ba7a70e4"
             ],
             "markers": "python_version >= '3.7'",
-            "version": "==6.3.2"
+            "version": "==6.3.3"
         },
         "dill": {
             "hashes": [
@@ -651,7 +683,7 @@
                 "sha256:939de3e7a6161af0c887ef91b7d41a53e7c5a1ca976325f429cb46ea9bc30ecc",
                 "sha256:de526c12914f0c550d15924c62d72abc48d6fe7364aa87328337a31007fe8a4f"
             ],
-            "markers": "python_version < '3.11'",
+            "markers": "python_version >= '3.7'",
             "version": "==2.0.1"
         },
         "tox": {

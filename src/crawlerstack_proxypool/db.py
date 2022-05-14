@@ -6,6 +6,7 @@ from inspect import signature
 from typing import TypeVar
 
 from dynaconf import Dynaconf
+from dynaconf.base import Settings
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     AsyncSessionTransaction,
@@ -13,7 +14,7 @@ from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
 from sqlalchemy.future import Connection, Engine
 from sqlalchemy.orm import sessionmaker
 
-from crawlerstack_proxypool.config import settings
+from crawlerstack_proxypool.config import settings as default_settings
 from crawlerstack_proxypool.utils import SingletonMeta
 
 logger = logging.getLogger(__name__)
@@ -28,16 +29,20 @@ class Database(metaclass=SingletonMeta):
     _engine: AsyncEngine | None = None
     _session_maker = None
     _scoped_session = None
+    _settings = None
 
-    def __init__(self):
-        self._settings = settings
+    def __init__(self, settings: Settings = None):
+        if self._settings is None:
+            self._settings = settings or default_settings
 
     @property
     def settings(self) -> Dynaconf:
+        """db settings"""
         return self._settings
 
     @property
     def engine(self) -> AsyncEngine:
+        """db engine"""
         if not self._engine:
             self._engine = create_async_engine(
                 self.settings.DATABASE,
@@ -48,6 +53,7 @@ class Database(metaclass=SingletonMeta):
 
     @property
     def session_maker(self) -> sessionmaker:
+        """session factory"""
         if not self._session_maker:
             self._session_maker = sessionmaker(
                 self.engine,
@@ -58,15 +64,18 @@ class Database(metaclass=SingletonMeta):
 
     @property
     def scoped_session(self) -> async_scoped_session:
+        """scoped session factory"""
         if not self._scoped_session:
             self._scoped_session = async_scoped_session(self.session_maker, scopefunc=current_task)
         return self._scoped_session
 
     @property
     def session(self):
+        """db scoped session"""
         return self.scoped_session()
 
     async def close(self) -> None:
+        """close db"""
         await self.engine.dispose()
 
     async def __aenter__(self) -> 'Database':
@@ -76,16 +85,11 @@ class Database(metaclass=SingletonMeta):
         await self.close()
 
 
-# def init_db(settings: Dynaconf) -> Database:
-#     db = Database()
-#     db.init(settings)
-#     return db
-
-
 RT = TypeVar("RT")
 
 
 def find_session_idx(func: Callable[..., Awaitable[RT]]) -> int:
+    """通过查找方法的 session 参数是否已经传递 session 变量，如果没有，就自动注入"""
     func_params = signature(func).parameters
     try:
         session_args_idx = tuple(func_params).index("session")

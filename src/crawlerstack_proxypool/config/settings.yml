@@ -1,5 +1,21 @@
 show_sql: true
 
+# Enable verbose mode to show more log detail message
+# Default is false
+verbose: false
+# Enable debug mode to show debug log.
+# Default is false, if enable, will show debug log.
+debug: false
+
+# LOG
+# Config log level, default is WARNING, if enable `debug` mode,
+# log level is debug
+loglevel: warning
+# Config log path.
+# default project path
+logpath: logs
+
+
 # Database config.
 # Default is sqlite+aiosqlite:////<project_path>/.local/proxypool.db
 #database: sqlite+aiosqlite:////tmp/crawlerstack_proxypool
@@ -41,19 +57,19 @@ fetch_task:
 #      seconds: 120
 
 validate_task:
-#  - name: http
-#    urls: ['http://httpbin.iclouds.work/ip']
-#    sources: []
-#    checker:
-#      name: anonymous
-#    dest: http
-#    schedule:
-#      trigger: interval
-#      seconds: 20
-#
+  #  - name: http
+  #    urls: ['http://httpbin.iclouds.work/ip']
+  #    sources: []
+  #    checker:
+  #      name: anonymous
+  #    dest: http
+  #    schedule:
+  #      trigger: interval
+  #      seconds: 20
+  #
   - name: https
-    urls: ['https://httpbin.iclouds.work/ip']
-    sources: []
+    urls: [ 'https://httpbin.iclouds.work/ip' ]
+    sources: [ ]
     checker:
       name: anonymous
     dest: https
@@ -62,16 +78,16 @@ validate_task:
       seconds: 20
 
 
-  # check http self
-#  - name: http
-#    urls: ['http://httpbin.iclouds.work/ip']
-#    sources: [http]
-#    checker:
-#      name: anonymous
-#    dest: http
-#    schedule:
-#      trigger: interval
-#      seconds: 10
+    # check http self
+    #  - name: http
+    #    urls: ['http://httpbin.iclouds.work/ip']
+    #    sources: [http]
+    #    checker:
+    #      name: anonymous
+    #    dest: http
+    #    schedule:
+    #      trigger: interval
+    #      seconds: 10
 
     # check https self
 #  - name: https

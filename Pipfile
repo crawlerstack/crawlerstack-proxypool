@@ -18,6 +18,8 @@ sqlalchemy = {extras = ["asyncio"], version = "*"}
 httpx = "*"
 aio-pydispatch = "*"
 alembic = "*"
+fastapi = "*"
+uvicorn = "*"
 
 [dev-packages]
 isort = "*"

@@ -102,16 +102,14 @@ async def init_ip_proxy(session):
     async with session.begin():
         proxies = [
             IpProxyModel(
-                id=1,
                 ip='127.0.0.1',
                 schema='http',
-                port='1081'
+                port=1081
             ),
             IpProxyModel(
-                id=2,
                 ip='127.0.0.3',
                 schema='http',
-                port='6379'
+                port=6379
             ),
         ]
         session.add_all(proxies)
@@ -120,27 +118,31 @@ async def init_ip_proxy(session):
 @pytest.fixture()
 async def init_proxy_status(session, init_ip_proxy):
     async with session.begin():
-        proxy = await session.scalar(select(IpProxyModel))
+        result = await session.scalars(select(IpProxyModel))
+        objs = result.all()
         proxy_statuses = [
             ProxyStatusModel(
-                id=1,
-                proxy_id=proxy.id,
+                proxy_id=objs[0].id,
                 name='http',
                 alive_count=10,
                 update_time=datetime.now()
             ),
             ProxyStatusModel(
-                id=2,
-                proxy_id=proxy.id,
+                proxy_id=objs[0].id,
                 name='https',
                 alive_count=10,
                 update_time=datetime.now()
             ),
             ProxyStatusModel(
-                id=3,
-                proxy_id=proxy.id,
+                proxy_id=objs[0].id,
                 name='alibaba',
                 alive_count=10,
+                update_time=datetime.now()
+            ),
+            ProxyStatusModel(
+                proxy_id=objs[1].id,
+                name='alibaba',
+                alive_count=5,
                 update_time=datetime.now()
             ),
         ]
