@@ -64,14 +64,21 @@ def test_from_kwargs():
     'rows_rule,row_start,row_end,columns_rule,ip_position,port_position,ip_rule,port_rule',
     [
         ('//tr', 1, None, 'td', 0, 1, 'text()', 'text()'),
+        ('//tr', 0, None, 'td', 0, 1, None, None),
+        ('//tr', 1, None, 'td', 1, 0, 'text()', 'text()'),
     ]
 )
-async def test_html_extractor_parse(rows_rule, row_start, row_end):
-    htmlextractorkwargs.rows_rule = rows_rule
-    htmlextractorkwargs.row_start = row_start
-    htmlextractorkwargs.row_end = row_end
-    items = await htmlextractor.parse()
-    assert items != None
+# async def test_html_extractor_parse(rows_rule, row_start, row_end):
+#     htmlextractorkwargs.rows_rule = rows_rule
+#     htmlextractorkwargs.row_start = row_start
+#     htmlextractorkwargs.row_end = row_end
+#     items = await htmlextractor.parse()
+#     assert items != None
+
+async def test_html_extractor_parse(mocker, rows_rule, row_start, row_end):
+    mock_parse = mocker.patch(
+        'crawlerstack_proxypool.common.extractor.HtmlExtractor().parse'
+    )
 
 
 @pytest.fixture()
