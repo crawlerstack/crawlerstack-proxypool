@@ -21,11 +21,9 @@ def verbose_formatter(verbose: bool) -> str:
 def log_level(debug: bool, level: str) -> str:
     """Get log level."""
     if debug is True:
-        level_num = logging.DEBUG
-    else:
-        level_num = logging.getLevelName(level)
-    settings.set('LOGLEVEL', logging.getLevelName(level_num))
-    return settings.LOGLEVEL
+        level = 'DEBUG'
+    settings.set('LOGLEVEL', level)
+    return settings.LOGLEVEL.upper()
 
 
 def init_logging_config() -> Dict:
@@ -100,4 +98,9 @@ def init_logging_config() -> Dict:
 
 def configure_logging():
     """Config log"""
-    dictConfig(init_logging_config())
+    print(settings.LOGPATH)
+    try:
+        dictConfig(init_logging_config())
+    except Exception as ex:
+        print(ex)
+        raise ex
