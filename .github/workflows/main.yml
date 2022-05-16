@@ -20,6 +20,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Install libxml2 and libxslt
+        run: sudo apt install libxslt libxml2
+
       - name: Set up Python ${{ matrix.python }} on ${{ matrix.os }}
         uses: actions/setup-python@v2
         with:
