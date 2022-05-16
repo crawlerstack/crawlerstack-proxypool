@@ -1,4 +1,5 @@
 """test validate spider service"""
+import logging
 from collections.abc import AsyncIterable, Iterable
 
 import pytest
@@ -21,6 +22,7 @@ async def validate_spider_service(database):
 @pytest.mark.asyncio
 async def test_start_urls(mocker, validate_spider_service, sources):
     """test start urls"""
+
     async def mock_get_from_message():
         """foo method"""
         for i in range(1):
@@ -45,11 +47,12 @@ async def test_start_urls(mocker, validate_spider_service, sources):
 @pytest.mark.asyncio
 async def test_get_from_repository(validate_spider_service, init_scene_proxy, sources, expect_value, caplog):
     """test get from repo"""
-    result = await validate_spider_service.get_from_repository(sources)
-    if isinstance(expect_value, int):
-        assert len(result) == 1
-    else:
-        assert expect_value in caplog.text
+    with caplog.at_level(logging.DEBUG):
+        result = await validate_spider_service.get_from_repository(sources)
+        if isinstance(expect_value, int):
+            assert len(result) == 1
+        else:
+            assert expect_value in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -68,11 +71,12 @@ async def test_get_from_message(validate_spider_service, message_factory, mocker
         return_value=message_factory(data),
         new_callable=mocker.PropertyMock
     )
-    res_gen = validate_spider_service.get_from_message('foo')
-    data = []
-    async for i in res_gen:
-        data.append(i)
-    if isinstance(expect_value, int):
-        assert len(data) == expect_value
-    else:
-        assert expect_value in caplog.text
+    with caplog.at_level(logging.DEBUG):
+        res_gen = validate_spider_service.get_from_message('foo')
+        data = []
+        async for i in res_gen:
+            data.append(i)
+        if isinstance(expect_value, int):
+            assert len(data) == expect_value
+        else:
+            assert expect_value in caplog.text
