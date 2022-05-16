@@ -1,7 +1,6 @@
 """
 Log util.
 """
-import logging
 import os
 from logging.config import dictConfig
 from typing import Dict
