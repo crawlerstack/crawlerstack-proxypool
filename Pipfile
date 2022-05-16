@@ -20,6 +20,7 @@ aio-pydispatch = "*"
 alembic = "*"
 fastapi = "*"
 uvicorn = "*"
+crawlerstack-proxypool = {path = "."}
 
 [dev-packages]
 isort = "*"
@@ -28,7 +29,6 @@ pytest = "*"
 pytest-cov = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
-pytest-pylint = "*"
 flake8 = "*"
 requests = "*"
 mkdocs = "*"
