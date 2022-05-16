@@ -18,7 +18,7 @@ jobs:
         python: ["3.10"]
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Install libxml2 and libxslt
         run: sudo apt-get install libxml2-dev libxslt-dev python-dev
@@ -40,7 +40,7 @@ jobs:
   linting:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: actions/setup-python@v2
 
       - run: pip install tox
