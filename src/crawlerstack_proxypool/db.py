@@ -1,3 +1,4 @@
+"""database"""
 import functools
 import logging
 from asyncio import current_task
@@ -126,7 +127,7 @@ class SessionProvider:
         :return:
         """
         self._session: AsyncSession = self._db.session
-        logging.warning(f'Session: {self._session}')
+        logging.warning('Session: %s', self._session)
         if self._auto_commit:
             self._trans = AsyncSessionTransaction(self._session)
             await self._trans.__aenter__()
@@ -151,7 +152,7 @@ class SessionProvider:
         async def inner(*args, **kwargs):
             session_args_idx = find_session_idx(func)
             if "session" in kwargs or session_args_idx < len(args):
-                # TODO 如果 session 已经开启事务，并且 nested 为 True ，则自动开启子事务
+                # 如果 session 已经开启事务，并且 nested 为 True ，则自动开启子事务
                 # 调用 func 时已经传入 session 参数
                 result = await func(*args, **kwargs)
             else:

@@ -8,35 +8,39 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     create_async_engine)
 from sqlalchemy.orm import sessionmaker
+from starlette.testclient import TestClient
 
-from crawlerstack_proxypool import alembic, config
-from crawlerstack_proxypool.application import Application
+from crawlerstack_proxypool import config
 from crawlerstack_proxypool.db import Database
+from crawlerstack_proxypool.log import configure_logging
+from crawlerstack_proxypool.manage import ProxyPool
 from crawlerstack_proxypool.models import (BaseModel, IpProxyModel,
-                                           ProxyStatusModel)
+                                           SceneProxyModel)
+
+configure_logging()
+
+API_VERSION = 'v1'
 
 
 @pytest.fixture()
 def cli_runner():
+    """cli runner fixture"""
     runner = CliRunner()
     yield runner
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture()
 def settings():
+    """settings fixture"""
     yield config.settings
 
 
 @pytest.fixture()
-def application():
-    yield Application()
-
-
-@pytest.fixture()
-async def db(migrate) -> Database:
-    _db = Database()
-    yield _db
-    await _db.close()
+async def database(migrate) -> Database:
+    """database fixture"""
+    _database = Database()
+    yield _database
+    await _database.close()
 
 
 # @pytest.fixture()
@@ -47,15 +51,16 @@ async def db(migrate) -> Database:
 
 @pytest.fixture()
 async def engine(settings):
-    engine: AsyncEngine = create_async_engine(
+    """engine fixture"""
+    _engine: AsyncEngine = create_async_engine(
         # 'mysql+pymysql://root:000000@localhost/proxypool',
         settings.DATABASE,
         echo=True,
     )
     try:
-        yield engine
+        yield _engine
     finally:
-        await engine.dispose()
+        await _engine.dispose()
 
 
 @pytest.fixture()
@@ -79,7 +84,9 @@ async def session(migrate, session_factory) -> AsyncSession:
 
 @pytest.fixture(autouse=True)
 def migrate(settings):
+    """migrate fixture"""
     async def setup():
+        """setup"""
         _engine: AsyncEngine = create_async_engine(settings.DATABASE)
         async with _engine.begin() as conn:
             await conn.run_sync(BaseModel.metadata.drop_all)
@@ -99,16 +106,17 @@ def migrate(settings):
 
 @pytest.fixture()
 async def init_ip_proxy(session):
+    """初始化 ip_proxy 表的数据"""
     async with session.begin():
         proxies = [
             IpProxyModel(
                 ip='127.0.0.1',
-                schema='http',
+                protocol='http',
                 port=1081
             ),
             IpProxyModel(
                 ip='127.0.0.3',
-                schema='http',
+                protocol='http',
                 port=6379
             ),
         ]
@@ -116,30 +124,31 @@ async def init_ip_proxy(session):
 
 
 @pytest.fixture()
-async def init_proxy_status(session, init_ip_proxy):
+async def init_scene_proxy(session, init_ip_proxy):
+    """初始化 scene_proxy 表的数据"""
     async with session.begin():
         result = await session.scalars(select(IpProxyModel))
         objs = result.all()
         proxy_statuses = [
-            ProxyStatusModel(
+            SceneProxyModel(
                 proxy_id=objs[0].id,
                 name='http',
                 alive_count=10,
                 update_time=datetime.now()
             ),
-            ProxyStatusModel(
+            SceneProxyModel(
                 proxy_id=objs[0].id,
                 name='https',
                 alive_count=10,
                 update_time=datetime.now()
             ),
-            ProxyStatusModel(
+            SceneProxyModel(
                 proxy_id=objs[0].id,
                 name='alibaba',
                 alive_count=10,
                 update_time=datetime.now()
             ),
-            ProxyStatusModel(
+            SceneProxyModel(
                 proxy_id=objs[1].id,
                 name='alibaba',
                 alive_count=5,
@@ -147,3 +156,31 @@ async def init_proxy_status(session, init_ip_proxy):
             ),
         ]
         session.add_all(proxy_statuses)
+
+
+@pytest.fixture(autouse=True)
+async def proxypool(settings):
+    """proxypool fixture"""
+    _proxypool = ProxyPool(settings)
+    await _proxypool.schedule()
+    yield _proxypool
+    await _proxypool.stop()
+
+
+@pytest.fixture()
+async def rest_api_client(proxypool):
+    """rest api client fixture"""
+    _client = TestClient(
+        proxypool.rest_api.app
+    )
+    yield _client
+
+
+@pytest.fixture()
+def api_url_factory():
+    """api url factory"""
+
+    def factory(api: str):
+        return f'/api/{API_VERSION}{api}'
+
+    return factory

@@ -1,10 +1,10 @@
 """Spider"""
 import random
 import typing
-from collections.abc import Iterator, AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from typing import Type
 
-from httpx import Response, URL
+from httpx import URL, Response
 
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.spider import Spider as ScrapySpider

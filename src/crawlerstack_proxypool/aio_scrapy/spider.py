@@ -5,12 +5,12 @@ import abc
 import inspect
 import logging
 import typing
-from collections.abc import Iterator, AsyncIterator, AsyncGenerator
+from collections.abc import AsyncGenerator, AsyncIterator, Iterator
 
 from httpx import URL, Response
 
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
-from crawlerstack_proxypool.signals import spider_opened, spider_closed
+from crawlerstack_proxypool.signals import spider_closed, spider_opened
 
 
 class Spider(metaclass=abc.ABCMeta):

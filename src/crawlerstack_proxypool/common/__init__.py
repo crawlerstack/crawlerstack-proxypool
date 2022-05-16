@@ -1,9 +1,13 @@
+"""common"""
 from typing import Type, cast
 
 from crawlerstack_proxypool.common.checker import (AnonymousChecker,
                                                    KeywordChecker)
-from crawlerstack_proxypool.common.extractor import (BaseExtractor, HtmlExtractor,
+from crawlerstack_proxypool.common.extractor import (BaseExtractor,
+                                                     HtmlExtractor,
                                                      JsonExtractor)
+
+# pylint: disable=too-few-public-methods
 
 
 class ParserFactory:
@@ -74,5 +78,4 @@ class CheckParser(Parser):
             return KeywordChecker
         if name == 'anonymous':
             return AnonymousChecker
-        else:
-            raise ValueError(f'Checker {name} has not implement.')
+        raise ValueError(f'Checker {name} has not implement.')

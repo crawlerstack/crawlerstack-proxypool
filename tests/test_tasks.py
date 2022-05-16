@@ -1,24 +1,64 @@
 import pytest
+from httpx import URL, Response
 
-from crawlerstack_proxypool.common import ParserFactory
-from crawlerstack_proxypool.task import ValidateSpiderTask
+from crawlerstack_proxypool.aio_scrapy.downloader import DownloadHandler
+from crawlerstack_proxypool.common import BaseExtractor
+from crawlerstack_proxypool.common.checker import CheckedProxy
+from crawlerstack_proxypool.service import (FetchSpiderService,
+                                            ValidateSpiderService)
+from crawlerstack_proxypool.task import FetchSpiderTask, ValidateSpiderTask
 
 
-class TestValidateSpiderTask:
-    @pytest.fixture()
-    def task(self):
-        task = ValidateSpiderTask(
-            'http',
-            'http',
-            ['http://httpbin.iclouds.work/ip'],
-            parser_kls=ParserFactory('anonymous').get_checker(),
-            sources=['http'],
-        )
-        yield task
+class MockExtractor(BaseExtractor):
+    """Mock extractor"""
 
-    @pytest.mark.asyncio
-    async def test_start(self, task, init_proxy_status):
-        # TODO 修复 spider 逻辑中，由于 spider.stop ，导致 pipeline_handler 等操作失效
-        # 问题出在 asyncio.gather(*self._active_downloader) 完成后，
-        # 执行了 Spider.close ，导致后续操作无效
-        await task.start()
+    async def parse(self, response: Response, **kwargs):
+        pass
+
+
+@pytest.mark.asyncio
+async def test_fetch_spider_task(mocker):
+    """test fetch spider task"""
+    data = ['http://127.0.0.1:1080']
+    dest = ['http']
+    mocker.patch.object(MockExtractor, 'parse', return_value=data)
+    download_mocker = mocker.patch.object(DownloadHandler, 'download')
+    save_mocker = mocker.patch.object(FetchSpiderService, 'save')
+    task = FetchSpiderTask(
+        'foo',
+        urls=['https://example.com'],
+        dest=dest,
+        parser_kls=MockExtractor
+    )
+
+    await task.start()
+    download_mocker.assert_called_once()
+    save_mocker.assert_called_once_with(data, dest)
+
+
+@pytest.mark.asyncio
+async def test_validate_spider_task(mocker):
+    """test validate spider task"""
+    name = 'foo'
+    dest = 'bar'
+    check_urls = ['https://example.com']
+    exist_proxies = ['http://127.0.0.1:1080']
+    checked_data = CheckedProxy(url=URL(exist_proxies[0]), alive=True)
+    sources = ['http']
+
+    mocker.patch.object(MockExtractor, 'parse', return_value=checked_data)
+    download_mocker = mocker.patch.object(DownloadHandler, 'download')
+    save_mocker = mocker.patch.object(ValidateSpiderService, 'save')
+    mocker.patch.object(ValidateSpiderService, 'start_urls', return_value=exist_proxies)
+
+    task = ValidateSpiderTask(
+        name=name,
+        dest=dest,
+        check_urls=check_urls,
+        parser_kls=MockExtractor,
+        sources=sources,
+    )
+    await task.start()
+
+    save_mocker.assert_called_once_with(checked_data, dest)
+    download_mocker.assert_called_once()

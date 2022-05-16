@@ -1,17 +1,17 @@
 """service"""
 import dataclasses
 import logging
-from typing import AsyncIterable, ClassVar, Iterable
+from typing import AsyncIterable, Iterable
 
 from httpx import URL
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.message import Message
-from crawlerstack_proxypool.models import ProxyStatusModel
 from crawlerstack_proxypool.repositories import (BaseRepository,
                                                  IpProxyRepository,
-                                                 ProxyStatusRepository)
+                                                 SceneProxyModel,
+                                                 SceneProxyRepository)
 from crawlerstack_proxypool.signals import (start_fetch_proxy,
                                             start_validate_proxy)
 
@@ -70,89 +70,18 @@ class CRUDMixin:  # noqa
         """
         await self.repository.delete(pk)
 
-    async def count(self) -> int:
+    async def count(
+            self,
+            **kwargs,
+    ) -> int:
         """Count"""
-        return await self.repository.count()
+        return await self.repository.count(**kwargs)
 
 
 @dataclasses.dataclass
 class BaseService:
     """Base service"""
     _session: AsyncSession
-    _proxy_status_repo: ProxyStatusRepository = dataclasses.field(default=None, init=False)
-    _ip_proxy_repo: IpProxyRepository = dataclasses.field(default=None, init=False)
-
-    @property
-    def proxy_status_repo(self) -> ProxyStatusRepository:
-        """proxy status repo"""
-        if not self._proxy_status_repo:
-            self._proxy_status_repo = ProxyStatusRepository(self._session)
-        return self._proxy_status_repo
-
-    @property
-    def ip_proxy_repo(self) -> IpProxyRepository:
-        """ip proxy repo"""
-        if not self._ip_proxy_repo:
-            self._ip_proxy_repo = IpProxyRepository(self._session)
-        return self._ip_proxy_repo
-
-    async def update_proxy_status(self, pk: int, update_count: int) -> ProxyStatusModel | None:
-        """
-        更新 ProxyStatusModel 对象的状态。
-        如果计算后的 alive_count 值 > 0 将会更新；如果 alive_count <= 0 ，将其删除
-        :param pk:
-        :param update_count:
-        :return:
-        """
-        # TODO 优化，当 http/https 不可用，直接删除 IpProxy ，级联删除所有关联对象
-        proxy_status = await self.proxy_status_repo.get_by_id(pk)
-        alive_count = proxy_status.alive_count + update_count
-        if alive_count > 0:
-            return await self.proxy_status_repo.update(
-                proxy_status.id,
-                alive_count=alive_count,
-            )
-        # 当计算后的 alive_count 小于0，则删除
-        logger.debug('"%s" is dead, so delete it.', proxy_status)
-        await self.proxy_status_repo.delete(proxy_status.id)
-
-    async def save_proxy_status(self, proxy: CheckedProxy, dest: str):
-        """
-        将校验后的代理保存到数据库中。
-
-        保存时，首先检查 IpProxyModel 中是否存在，如果没有，并且 proxy.alive 为 True，
-        则创建 IpProxyModel 和 ProxyStatusModel 对象。
-        如果有，则判断 ProxyStatusModel 是否有，如果没有，并且 proxy.alvie 为 True ，则创建。
-            如果 ProxyStatusModel 存在，并且计算后的 alive_count > 0 则更新，反之删除 ProxyStatusModel。
-
-        :param proxy:
-        :param dest:
-        :return:
-        """
-        ip_proxy = await self.ip_proxy_repo.get_or_create(
-            ip=proxy.url.host,
-            port=proxy.url.port,
-            schema=proxy.url.scheme,
-        )
-        proxy_status = await self.proxy_status_repo.get_or_create(
-            params={'alive_count': 0},
-            name=dest,
-            proxy_id=ip_proxy.id,
-        )
-        await self.update_proxy_status(proxy_status.id, proxy.alive_status)
-
-    async def decrease(self, proxy: URL, dest: str):
-        """
-        请求时的异常处理，此时应该对 proxy 减分。
-
-        对于 http/https 初次校验的，数据库中没有记录，就需要忽略。
-
-        :param dest:
-        :param proxy:
-        :return:
-        """
-        checked_proxy = CheckedProxy(proxy, alive=False)
-        await self.save_proxy_status(checked_proxy, dest=dest)
 
 
 class IpProxyService(BaseService, CRUDMixin):
@@ -163,16 +92,101 @@ class IpProxyService(BaseService, CRUDMixin):
         return IpProxyRepository(self._session)
 
 
-class ProxyStatusService(BaseService, CRUDMixin):
-    """Proxy status service"""
+@dataclasses.dataclass
+class SceneProxyService(BaseService, CRUDMixin):
+    """Scene proxy service"""
+
+    _proxy_status_repo: SceneProxyRepository = dataclasses.field(default=None, init=False)
+    _ip_proxy_repo: IpProxyRepository = dataclasses.field(default=None, init=False)
+
+    def __post_init__(self):
+        self._proxy_status_repo = SceneProxyRepository(self._session)
 
     @property
-    def repository(self):
-        return ProxyStatusRepository(self._session)
+    def repository(self) -> SceneProxyRepository:
+        return SceneProxyRepository(self._session)
+
+    @property
+    def scene_proxy_repo(self) -> SceneProxyRepository:
+        """proxy status repo"""
+        return self._proxy_status_repo
+
+    async def get_with_ip(self, limit: int = 10, offset: int = 0, **kwargs):
+        """get with ip"""
+        return await self.repository.get_with_ip(limit=limit, offset=offset, **kwargs)
+
+    @property
+    def ip_proxy_repo(self) -> IpProxyRepository:
+        """ip proxy repo"""
+        if not self._ip_proxy_repo:
+            self._ip_proxy_repo = IpProxyRepository(self._session)
+        return self._ip_proxy_repo
+
+    async def get_by_names(self, *names):
+        """get by names"""
+        return await self.repository.get_by_names(*names)
+
+    async def update_proxy_status(self, pk: int, update_count: int) -> SceneProxyModel | None:
+        """
+        更新 ProxyStatusModel 对象的状态。
+        如果计算后的 alive_count 值 > 0 将会更新；如果 alive_count <= 0 ，将其删除
+        :param pk:
+        :param update_count:
+        :return:
+        """
+        # TODO 优化，当 http/https 不可用，直接删除 IpProxy ，级联删除所有关联对象
+        proxy_status = await self.scene_proxy_repo.get_by_id(pk)
+        alive_count = proxy_status.alive_count + update_count
+        if alive_count > 0:
+            return await self.scene_proxy_repo.update(
+                proxy_status.id,
+                alive_count=alive_count,
+            )
+        # 当计算后的 alive_count 小于0，则删除
+        logger.debug('"%s" is dead, so delete it.', proxy_status)
+        await self.scene_proxy_repo.delete(proxy_status.id)
+
+    async def save_scene_proxy(self, proxy: CheckedProxy, name: str):
+        """
+        将校验后的代理保存到数据库中。
+
+        保存时，首先检查 IpProxyModel 中是否存在，如果没有，并且 proxy.alive 为 True，
+        则创建 IpProxyModel 和 SceneProxyModel 对象。
+        如果有，则判断 SceneProxyModel 是否有，如果没有，并且 proxy.alvie 为 True ，则创建。
+            如果 SceneProxyModel 存在，并且计算后的 alive_count > 0 则更新，反之删除 SceneProxyModel。
+
+        :param proxy:
+        :param name:
+        :return:
+        """
+        ip_proxy = await self.ip_proxy_repo.get_or_create(
+            ip=proxy.url.host,
+            port=proxy.url.port,
+            protocol=proxy.url.scheme,
+        )
+        scene_proxy = await self.scene_proxy_repo.get_or_create(
+            params={'alive_count': 0},
+            name=name,
+            proxy_id=ip_proxy.id,
+        )
+        await self.update_proxy_status(scene_proxy.id, proxy.alive_status)
+
+    async def decrease(self, proxy: URL, name: str):
+        """
+        请求时的异常处理，此时应该对 proxy 减分。
+
+        对于 http/https 初次校验的，数据库中没有记录，就需要忽略。
+
+        :param name:
+        :param proxy:
+        :return:
+        """
+        checked_proxy = CheckedProxy(proxy, alive=False)
+        await self.save_scene_proxy(checked_proxy, name=name)
 
 
 @dataclasses.dataclass
-class ValidateSpiderService(BaseService):
+class ValidateSpiderService(SceneProxyService):
     """
     验证 spider service
     """
@@ -212,13 +226,13 @@ class ValidateSpiderService(BaseService):
         :param sources:
         :return:
         """
-        proxies = await self.proxy_status_repo.get_by_names(*sources)
+        proxies = await self.scene_proxy_repo.get_by_names(*sources)
         logger.debug('Get %d proxy from db.', len(proxies))
         result = []
         for status in proxies:
             proxy = status.ip_proxy
             result.append(
-                URL(scheme=proxy.schema, host=proxy.ip, port=proxy.port)
+                URL(scheme=proxy.protocol, host=proxy.ip, port=proxy.port)
             )
         if not result:
             logger.debug('No proxy in db, to trigger validate proxy task with "%s"', sources)
@@ -249,24 +263,32 @@ class ValidateSpiderService(BaseService):
 
     async def save(self, proxy: CheckedProxy, dest: str):
         """save"""
-        return await self.save_proxy_status(proxy, dest)
+        return await self.save_scene_proxy(proxy, dest)
 
 
 @dataclasses.dataclass
-class FetchSpiderService(BaseService):
+class FetchSpiderService(SceneProxyService):
     """
     Fetch spider service
     """
-    message: ClassVar[Message] = Message()
-    dest: list[str]
+    _message: Message = dataclasses.field(default=Message(), init=False)
 
-    async def save(self, data: list[URL]):
+    @property
+    def message(self):
+        """
+        message queue
+        :return:
+        """
+        return self._message
+
+    async def save(self, data: list[URL], dest: list[str]):
         """
         将数据写入到消息队列中。
 
         :param data:
+        :param dest:
         :return:
         """
         for i in data:
-            for dest_name in self.dest:
+            for dest_name in dest:
                 await self.message.add(f'proxypool:{dest_name}', str(i))

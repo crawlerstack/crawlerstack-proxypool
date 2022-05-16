@@ -26,11 +26,11 @@ isort = "*"
 tox = "*"
 pytest = "*"
 pytest-cov = "*"
-pylint = "*"
 pytest-mock = "*"
 pytest-asyncio = "*"
 pytest-pylint = "*"
-pylint-pytest = "*"
+flake8 = "*"
+requests = "*"
 
 [requires]
 python_version = "3.10"

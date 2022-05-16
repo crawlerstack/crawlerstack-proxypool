@@ -2,9 +2,9 @@
 import abc
 import asyncio
 import logging
-from typing import Generic, TypeVar
 from collections import defaultdict, deque
 from collections.abc import Callable
+from typing import Generic, TypeVar
 
 from httpx import Response
 

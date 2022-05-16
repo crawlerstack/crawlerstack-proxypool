@@ -5,13 +5,13 @@ import asyncio
 import dataclasses
 import logging
 import typing
-from collections.abc import AsyncIterator, AsyncGenerator
+from collections.abc import AsyncGenerator
 
 from crawlerstack_proxypool.aio_scrapy.downloader import Downloader
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.scraper import Scraper
 from crawlerstack_proxypool.aio_scrapy.spider import Spider
-from crawlerstack_proxypool.signals import spider_opened, spider_closed
+from crawlerstack_proxypool.signals import spider_closed, spider_opened
 
 if typing.TYPE_CHECKING:
     from crawlerstack_proxypool.aio_scrapy.crawler import Crawler

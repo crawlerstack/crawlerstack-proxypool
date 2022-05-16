@@ -23,17 +23,20 @@ class Foo(Spider):
 
 @pytest.fixture()
 def foo_spider():
+    """foo spider fixture"""
     yield Foo(name='test', start_urls=['https://httpbin.iclouds.work/ip'])
 
 
 @pytest.fixture()
 async def execute_engine(foo_spider):
+    """engine fixture"""
     crawler = Crawler(foo_spider)
     yield ExecuteEngine(crawler)
 
 
 @pytest.fixture()
 async def engine_with_spider(mocker, execute_engine):
+    """engine with spider fixture"""
     await execute_engine.open_spider(spider=mocker.MagicMock())
     yield execute_engine
     await execute_engine.close()
@@ -60,19 +63,19 @@ async def test_loop_call(event_loop, mocker, execute_engine, called, closed):
 
     def callback():
         """callback"""
-        if not execute_engine._closed.done():
-            execute_engine._closed.set_result('Closed.')
+        if not execute_engine._closed.done():   # pylint: disable=protected-access
+            execute_engine._closed.set_result('Closed.')    # pylint: disable=protected-access
 
     event_loop.call_later(0.001, callback)
     if closed:
-        execute_engine._closed.set_result('Closed')
+        execute_engine._closed.set_result('Closed')  # pylint: disable=protected-access
     next_request = mocker.patch.object(ExecuteEngine, 'next_request')
     await execute_engine.loop_call(0)
     assert next_request.called == called
 
 
 @pytest.mark.parametrize(
-    'start_requests, should_pass, crawl_called',
+    'start_urls, should_pass, crawl_called',
     [
         (None, True, False),
         (None, False, False),
@@ -81,12 +84,17 @@ async def test_loop_call(event_loop, mocker, execute_engine, called, closed):
     ]
 )
 @pytest.mark.asyncio
-async def test_next_request(mocker, execute_engine, start_requests, should_pass, crawl_called):
+async def test_next_request(mocker, execute_engine, start_urls, should_pass, crawl_called):
     """test next request"""
+
+    async def mock_start_requests():
+        for i in start_urls:
+            yield i
+
     mocker.patch.object(ExecuteEngine, 'spider_idle')
     mocker.patch.object(ExecuteEngine, 'should_pass', return_value=should_pass)
     crawl = mocker.patch.object(ExecuteEngine, 'crawl')
-    execute_engine._start_requests = start_requests
+    execute_engine._start_requests = start_urls if start_urls is None else mock_start_requests()    # pylint: disable=protected-access
     await execute_engine.next_request()
     assert crawl.called == crawl_called
 
@@ -101,10 +109,10 @@ async def test_schedule(mocker, engine_with_spider):
     mocker.patch.object(Scraper, 'enqueue', return_value=result)
 
     request = mocker.MagicMock()
-    await engine_with_spider._processing_requests_queue.put(request)
+    await engine_with_spider._processing_requests_queue.put(request)    # pylint: disable=protected-access
 
     await engine_with_spider.schedule(request)
-    assert engine_with_spider._processing_requests_queue.empty()
+    assert engine_with_spider._processing_requests_queue.empty()    # pylint: disable=protected-access
 
 
 @pytest.mark.asyncio
@@ -150,8 +158,8 @@ async def test_spider_is_idle(
 
     mocker.patch.object(Downloader, 'idle', return_value=downloader_idle)
     mocker.patch.object(Scraper, 'idle', return_value=scraper_idle)
-    execute_engine._processing_requests_queue = queue
-    execute_engine._start_requests = start_requests
+    execute_engine._processing_requests_queue = queue  # pylint: disable=protected-access
+    execute_engine._start_requests = start_requests  # pylint: disable=protected-access
     result = execute_engine.spider_is_idle()
     assert result == expect_value
 

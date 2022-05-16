@@ -8,9 +8,10 @@ import logging
 import httpx
 from httpx import Response
 
-from crawlerstack_proxypool.aio_scrapy.settings import Settings
-from crawlerstack_proxypool.aio_scrapy.middlewares import DownloadMiddlewareManager
+from crawlerstack_proxypool.aio_scrapy.middlewares import \
+    DownloadMiddlewareManager
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.settings import Settings
 
 logger = logging.getLogger(__name__)
 

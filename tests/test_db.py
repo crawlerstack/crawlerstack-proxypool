@@ -1,23 +1,25 @@
+"""test database"""
 import pytest
-from sqlalchemy import func, inspect, select
+from sqlalchemy import inspect
 from sqlalchemy.engine import Connection
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from crawlerstack_proxypool.db import Database, session_provider
+from crawlerstack_proxypool.db import Database
 
 
 @pytest.mark.asyncio
 async def test_database():
-    async with Database() as d1:
-        async with Database() as d2:
-            assert d1 == d2
-            assert d1.engine == d2.engine
+    """test database"""
+    async with Database() as database1:
+        async with Database() as database2:
+            assert database1 == database2
+            assert database1.engine == database2.engine
 
 
 @pytest.mark.asyncio
 async def test_engine():
-    async with Database() as db:
-        async with db.engine.connect() as connector:
+    """test engine"""
+    async with Database() as database:
+        async with database.engine.connect() as connector:
             def get_table_names(conn: Connection):
                 inspector = inspect(conn)
                 return inspector.get_table_names()
@@ -25,7 +27,6 @@ async def test_engine():
             table_names = await connector.run_sync(get_table_names)
 
             assert table_names
-
 
 # async def add_data(session: AsyncSession):
 #     obj = IpAddressModel(ip='127.0.0.1')

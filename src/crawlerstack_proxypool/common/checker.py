@@ -5,10 +5,11 @@ from typing import TypeVar
 
 from httpx import URL, Response
 
-from crawlerstack_proxypool.common.extractor import BaseExtractor, ExtractorKwargs
 from crawlerstack_proxypool.aio_scrapy.downloader import DownloadHandler
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.spider import Spider
+from crawlerstack_proxypool.common.extractor import (BaseExtractor,
+                                                     ExtractorKwargs)
 
 
 @dataclasses.dataclass

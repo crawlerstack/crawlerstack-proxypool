@@ -2,6 +2,7 @@
 repository
 """
 import dataclasses
+import logging
 from typing import Generic
 
 from sqlalchemy import delete, func
@@ -12,11 +13,12 @@ from sqlalchemy.orm import joinedload
 
 from crawlerstack_proxypool import models
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import ModelType, ProxyStatusModel
+from crawlerstack_proxypool.models import ModelT, SceneProxyModel
+from crawlerstack_proxypool.schema import SceneIpProxy
 
 
 @dataclasses.dataclass
-class BaseRepository(Generic[ModelType]):
+class BaseRepository(Generic[ModelT]):
     """
     仓储对象基类
     """
@@ -30,7 +32,7 @@ class BaseRepository(Generic[ModelType]):
         """
         raise NotImplementedError()
 
-    async def get_all(self) -> list[ModelType]:
+    async def get_all(self) -> list[ModelT]:
         """
         get all
         :return:
@@ -38,18 +40,31 @@ class BaseRepository(Generic[ModelType]):
         result: Result = await self.session.execute(select(self.model))
         return result.scalars().all()
 
-    async def get(self, /, **kwargs) -> list[ModelType]:
+    async def get(
+            self,
+            /,
+            limit: int = 10,
+            offset: int = 0,
+            **kwargs,
+    ) -> list[ModelT]:
         """
         条件查找
+        :param limit:
+        :param offset:
         :param kwargs:
         :return:
         """
+        if not limit:
+            limit = 10
+        if not offset:
+            offset = 0
+
         and_condition = [getattr(self.model, k) == v for k, v in kwargs.items()]
-        stmt = select(self.model).filter(*and_condition)
+        stmt = select(self.model).filter(*and_condition).limit(limit).offset(offset)
         result = await self.session.scalars(stmt)
         return result.all()
 
-    async def get_one_or_none(self, /, **kwargs) -> ModelType | None:
+    async def get_one_or_none(self, /, **kwargs) -> ModelT | None:
         """
         通过条件获取一个对象，如果没有则返回 None
         :param kwargs:
@@ -60,7 +75,7 @@ class BaseRepository(Generic[ModelType]):
         result = await self.session.scalars(stmt)
         return result.one_or_none()
 
-    async def get_or_create(self, /, params: dict = None, **kwargs) -> ModelType:
+    async def get_or_create(self, /, params: dict = None, **kwargs) -> ModelT:
         """
         根据 kwargs 参数查询对象，如果对象不存在，使用 params 参数更新 kwargs 后创建对象并返回。
         通过 kwargs 参数查询的结果必须只有一个对象。
@@ -69,13 +84,16 @@ class BaseRepository(Generic[ModelType]):
         :return:
         """
         obj = await self.get_one_or_none(**kwargs)
+        logging.debug('get object %s', obj)
         if not obj:
             # 用 params 更新参数，然后创建对象
             kwargs.update(params or {})
             obj = await self.create(**kwargs)
+
+        logging.debug('get or create object %s', obj)
         return obj
 
-    async def get_by_id(self, pk: int) -> ModelType:
+    async def get_by_id(self, pk: int) -> ModelT:
         """
         通过 id 查找对象
         :param pk:
@@ -86,7 +104,7 @@ class BaseRepository(Generic[ModelType]):
             return result
         raise ObjectDoesNotExist()
 
-    async def create(self, /, **kwargs) -> ModelType:
+    async def create(self, /, **kwargs) -> ModelT:
         """
         创建对象
         :param kwargs:
@@ -97,7 +115,7 @@ class BaseRepository(Generic[ModelType]):
         await self.session.flush()
         return obj
 
-    async def update(self, pk: int, **kwargs) -> ModelType:
+    async def update(self, pk: int, **kwargs) -> ModelT:
         """
         更新对象
         :param pk:
@@ -119,12 +137,16 @@ class BaseRepository(Generic[ModelType]):
         stmt = delete(self.model).where(self.model.id == pk)
         await self.session.execute(stmt)
 
-    async def count(self) -> int:
+    async def count(
+            self,
+            **kwargs
+    ) -> int:
         """
         获取总和
         :return:
         """
-        stmt = select(func.count()).select_from(self.model)
+        and_condition = [getattr(self.model, k) == v for k, v in kwargs.items()]
+        stmt = select(func.count()).filter(*and_condition).select_from(self.model)
         total = await self.session.scalar(stmt)
         return total
 
@@ -138,70 +160,63 @@ class IpProxyRepository(BaseRepository[models.IpProxyModel]):
     def model(self):
         return models.IpProxyModel
 
-    async def get(
-            self,
-            /,
-            usage: str = None,
-            limit: int = None,
-            **kwargs,
-    ) -> list[ModelType]:
-        """
-        根据条件获取
-        :param usage:
-        :param limit:
-        :param kwargs:  Obj 的基本属性
-        :return:
-        """
-        and_condition = [getattr(self.model, k) == v for k, v in kwargs.items()]
-        stmt = select(self.model).filter(*and_condition)
-        if usage:
-            # 通过 name 过滤，
-            # 同时根据 ProxyStatusModel 的 alive_count 和 update_time 倒序返回
-            stmt = stmt.join(
-                self.model.proxy_status.and_(ProxyStatusModel.name == usage)
-            ).order_by(
-                ProxyStatusModel.alive_count.desc(),
-                ProxyStatusModel.update_time.desc(),
-            )
-        if limit:
-            stmt = stmt.limit(limit)
-        result = await self.session.scalars(stmt)
-        return result.all()
-
-    async def get_by_uri(self, ip: str, port: int, schema: str):
+    async def get_by_uri(self, ip: str, port: int, protocol: str):
         """
         通过 uri 获取对象
         :param ip:
         :param port:
-        :param schema:
+        :param protocol:
         :return:
         """
-        return self.get_one_or_none(ip=ip, port=port, schema=schema)
+        return self.get_one_or_none(ip=ip, port=port, protocol=protocol)
 
 
-class ProxyStatusRepository(BaseRepository[ProxyStatusModel]):
+class SceneProxyRepository(BaseRepository[SceneProxyModel]):
     """
-    代理状态
+    场景代理
     """
 
     @property
     def model(self):
-        return ProxyStatusModel
+        """model"""
+        return SceneProxyModel
 
-    async def get_by_ip_proxy_and_name(self, name: str, proxy_id: int) -> ProxyStatusModel:
-        """
-        通过 ip 或 名称获取
-        :param name:
-        :param proxy_id:
-        :return:
-        """
-        result = await self.get_one_or_none(name=name, proxy_id=proxy_id)
-        return result
+    async def get_with_ip(self, /, limit: int = 10, offset: int = 0, **kwargs) -> list[SceneIpProxy]:
+        """get with ip"""
+        if not limit:
+            limit = 10
+        if not offset:
+            offset = 0
+        and_condition = [getattr(self.model, k) == v for k, v in kwargs.items()]
+        stmt = select(
+            self.model
+        ).filter(
+            *and_condition
+        ).limit(
+            limit
+        ).offset(
+            offset
+        ).order_by(
+            self.model.alive_count.desc(),
+            self.model.update_time.desc(),
+        ).options(
+            joinedload(self.model.ip_proxy)
+        )
 
-    async def get_by_names(self, *names) -> list[ProxyStatusModel]:
-        """"""
-        # 如果 ProxyStatusModel 没有数据，会提示 ProxyStatusModel.ip_proxy
-        # 不存在
+        result = await self.session.scalars(stmt)
+        scene_objs: list[SceneProxyModel] = result.all()
+        data = []
+        for obj in scene_objs:
+            data.append(SceneIpProxy(
+                name=obj.name,
+                ip=obj.ip_proxy.ip,
+                port=obj.ip_proxy.port,
+                protocol=obj.ip_proxy.protocol,
+            ))
+        return data
+
+    async def get_by_names(self, *names) -> list[SceneProxyModel]:
+        """通过多个名称获取"""
         stmt = select(self.model).filter(
             self.model.name.in_(names)
         ).options(

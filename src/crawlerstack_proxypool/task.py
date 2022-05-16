@@ -14,12 +14,14 @@ from httpx import URL
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
-from crawlerstack_proxypool.common import ParserFactory, BaseExtractor
+from crawlerstack_proxypool.common import BaseExtractor, ParserFactory
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.config import settings
-from crawlerstack_proxypool.service import FetchSpiderService, ValidateSpiderService
 from crawlerstack_proxypool.db import session_provider
-from crawlerstack_proxypool.signals import start_fetch_proxy, start_validate_proxy
+from crawlerstack_proxypool.service import (FetchSpiderService,
+                                            ValidateSpiderService)
+from crawlerstack_proxypool.signals import (start_fetch_proxy,
+                                            start_validate_proxy)
 from crawlerstack_proxypool.spiders import Spider, ValidateSpider
 
 logger = logging.getLogger(__name__)
@@ -52,7 +54,10 @@ class TaskManager:
         :return:
         """
         fetch_task_config = settings.get('fetch_task')
+        logger.debug('Loaded fetch task config from settings. Detail: %s', fetch_task_config)
         validate_task_config = settings.get('validate_task')
+        logger.debug('Loaded validate task config from settings. Detail: %s', validate_task_config)
+
         if fetch_task_config:
             self.load_fetch_task(fetch_task_config.to_list())
         if validate_task_config:
@@ -83,6 +88,7 @@ class TaskManager:
             self.fetch_jobs.append((name, task))
 
     def load_validate_task(self, validate_config: dict):
+        """load validate task"""
         for config in validate_config:
             name = config['name']
             sources = config['sources']
@@ -101,9 +107,9 @@ class TaskManager:
                 **schedule,
             )
             if sources:
-                self.validate_scene_jobs.append(('name', task))
+                self.validate_scene_jobs.append((name, task))
             else:
-                self.validate_fetch_jobs.append(('name', task))
+                self.validate_fetch_jobs.append((name, task))
 
     def trigger_fetch_job(self, **_kwargs):
         """
@@ -121,15 +127,22 @@ class TaskManager:
         :return:
         """
         if sources:
-            for _, job in self.validate_fetch_jobs:
-                trigger_job_run_now(job)
-        else:
             for name, job in self.validate_scene_jobs:
                 if name in sources:
                     trigger_job_run_now(job)
+        else:
+            for _, job in self.validate_fetch_jobs:
+                trigger_job_run_now(job)
 
     def start(self):
+        """start task manager"""
+        logger.info('Starting task manage.')
         self.scheduler.start()
+
+    def stop(self):
+        """stop task manager"""
+        logger.info('Stopping task manage.')
+        self.scheduler.shutdown()
 
 
 def trigger_job_run_now(job: Job):
@@ -139,7 +152,7 @@ def trigger_job_run_now(job: Job):
     :return:
     """
     logger.debug('Job "%s" run next time: %s, modifying run now.', job, job.next_run_time)
-    job.modify(next_run_time=datetime.now())
+    job.modify(next_run_time=datetime.now() + timedelta(seconds=3))
 
 
 @dataclasses.dataclass
@@ -160,11 +173,11 @@ class FetchSpiderTask:
     @session_provider(auto_commit=True)
     async def save(self, proxy: list[URL], session: AsyncSession):
         """save"""
-        service = FetchSpiderService(session, self.dest)
-        await service.save(proxy)
+        service = FetchSpiderService(session)
+        await service.save(proxy, self.dest)
 
     async def start(self):
-        """start"""
+        """start task"""
         crawler = Crawler(Spider)
         await crawler.crawl(
             name=self.name,
@@ -205,6 +218,7 @@ class ValidateSpiderTask:
         await service.save(proxy, self.dest)
 
     async def start(self):
+        """start task"""
         seeds = await self.start_urls()
         crawler = Crawler(ValidateSpider)
         await crawler.crawl(

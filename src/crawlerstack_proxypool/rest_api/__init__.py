@@ -1,8 +1,8 @@
+"""rest api server"""
 import dataclasses
 
-import uvicorn
 from fastapi import FastAPI
-from uvicorn import Server, Config
+from uvicorn import Config, Server
 
 from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.rest_api.routers import init_route
@@ -27,6 +27,10 @@ class RestAPI:
 
         uvicorn_config = Config(self._app)
         self._uvicorn_server = Server(uvicorn_config)
+
+    @property
+    def app(self):
+        return self._app
 
     def init(self):
         """Init rest api"""

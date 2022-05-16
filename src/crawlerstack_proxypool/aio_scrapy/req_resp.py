@@ -4,8 +4,9 @@ import typing
 
 from httpx import URL
 from httpx._client import UseClientDefault
-from httpx._types import (AuthTypes, CookieTypes, HeaderTypes, QueryParamTypes,
-                          RawURL, RequestContent, RequestData, RequestFiles, ProxiesTypes)
+from httpx._types import (AuthTypes, CookieTypes, HeaderTypes, ProxiesTypes,
+                          QueryParamTypes, RequestContent, RequestData,
+                          RequestFiles)
 
 
 @dataclasses.dataclass(unsafe_hash=True, eq=False)

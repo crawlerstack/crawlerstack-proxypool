@@ -1,12 +1,15 @@
+"""manage"""
 import asyncio
 import logging
 import signal as system_signal
+
 from dynaconf.base import Settings
 
 from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.exceptions import CrawlerStackProxyPoolError
 from crawlerstack_proxypool.log import configure_logging
 from crawlerstack_proxypool.rest_api import RestAPI
+from crawlerstack_proxypool.task import TaskManager
 
 HANDLED_SIGNALS = (
     system_signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -17,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProxyPool:
+    """proxypool"""
 
     def __init__(
             self,
@@ -33,6 +37,8 @@ class ProxyPool:
             port=self._settings.PORT,
         )
 
+        self.task_manager = TaskManager()
+
         self.should_exit = False
         self.force_exit = True
 
@@ -43,18 +49,31 @@ class ProxyPool:
 
     @property
     def settings(self):
+        """settings"""
         return self._settings
 
     @property
     def rest_api(self):
+        """rest api"""
         return self._rest_api
+
+    async def schedule(self):
+        """调度任务"""
+
+        self.task_manager.load_task()
+        self.task_manager.start()
+
+        self.rest_api.init()
 
     async def start(self):
         """Run"""
+        logger.debug('Start proxypool server .')
         try:
+            await self.schedule()
+
             await self.rest_api.start()
+
             self.install_signal_handlers()
-            self.rest_api.init()
             while not self.should_exit:
                 # 暂时不做任何处理。
                 await asyncio.sleep(0.001)
@@ -65,6 +84,8 @@ class ProxyPool:
 
     async def stop(self):
         """Stop spiderkeeper"""
+        logger.debug('Stop proxypool server.')
+        self.task_manager.stop()
         await self.rest_api.stop()
         await self.db.close()
 
@@ -80,7 +101,7 @@ class ProxyPool:
             for sig in HANDLED_SIGNALS:
                 system_signal.signal(sig, self.handle_exit)
 
-    def handle_exit(self, sig, frame):
+    def handle_exit(self, _sig, _frame):
         """Handle exit signal."""
         if self.should_exit:
             self.force_exit = True

@@ -1,8 +1,8 @@
 import functools
+from collections.abc import AsyncGenerator, Callable
+from typing import Type, TypeVar
 
 from fastapi import Request
-from collections.abc import Callable, AsyncGenerator
-from typing import Type, TypeVar
 
 from crawlerstack_proxypool.service import CRUDMixin
 
@@ -17,6 +17,7 @@ def service_depend(service_kls: Type[RT]) -> Callable[[Request], AsyncGenerator[
     """
 
     async def get_service(request: Request):
+        """service factory"""
         db = request.app.extra.get('db')
         async with db.scoped_session() as local_session:
             try:

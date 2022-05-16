@@ -1,10 +1,11 @@
 """Settings"""
 import dataclasses
-from typing import Type
 import typing
+from typing import Type
 
 if typing.TYPE_CHECKING:
-    from crawlerstack_proxypool.aio_scrapy.middlewares import DownloadMiddleware
+    from crawlerstack_proxypool.aio_scrapy.middlewares import \
+        DownloadMiddleware
 
 
 @dataclasses.dataclass

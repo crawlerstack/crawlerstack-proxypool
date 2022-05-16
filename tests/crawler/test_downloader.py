@@ -1,14 +1,16 @@
 """Test downloader"""
 import pytest
 
-from crawlerstack_proxypool.aio_scrapy.downloader import Downloader, DownloadHandler
+from crawlerstack_proxypool.aio_scrapy.downloader import (Downloader,
+                                                          DownloadHandler)
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.settings import Settings
 
 
 @pytest.fixture()
 async def downloader():
     """downloader fixture"""
-    yield Downloader()
+    yield Downloader(Settings())
 
 
 @pytest.fixture()
@@ -21,7 +23,7 @@ async def download_handler():
 async def test_downloader(mocker, downloader):
     """test download"""
     download = mocker.patch.object(DownloadHandler, 'download')
-    download_task = await downloader.enqueue(mocker.MagicMock())
+    download_task = await downloader.enqueue(mocker.MagicMock(), mocker.MagicMock())
     await download_task
     assert downloader.queue.empty()
     download.assert_called_once()
