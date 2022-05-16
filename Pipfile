@@ -31,6 +31,8 @@ pytest-asyncio = "*"
 pytest-pylint = "*"
 flake8 = "*"
 requests = "*"
+mkdocs = "*"
+mkdocs-material = "*"
 
 [requires]
 python_version = "3.10"
