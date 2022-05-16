@@ -1,0 +1,109 @@
+show_sql: true
+
+# Enable verbose mode to show more log detail message
+# Default is false
+verbose: false
+# Enable debug mode to show debug log.
+# Default is false, if enable, will show debug log.
+debug: false
+
+# LOG
+# Config log level, default is WARNING, if enable `debug` mode,
+# log level is debug
+loglevel: warning
+# Config log path.
+# default project path
+logpath: logs
+
+# Server
+
+host: 127.0.0.1
+port: 8000
+
+# Database config.
+# Default is sqlite+aiosqlite:////<project_path>/.local/proxypool.db
+#database: sqlite+aiosqlite:////tmp/crawlerstack_proxypool
+#database: mysql+aiomysql://root:000000@localhost/proxypool
+database:
+
+redis_url: redis://localhost
+
+fetch_task:
+#  - name: foo
+#    urls: [ ]
+#    parser:
+#      name: json
+#    dest:
+#      - http
+#      - https
+#  - name: cool-proxy
+#    urls:
+#      - https://cool-proxy.net/proxies.json
+#    parser:
+#      name: json
+#    dest:
+#      - http
+#      - https
+#    schedule:
+#      trigger: interval
+#      seconds: 120
+#  - name: 66ip
+#    urls:
+#      - http://www.66ip.cn/
+#    extractor:
+#      name: html
+#      rows_rule: //div[@id="main"]//tr
+#    dest:
+#      - http
+#      - https
+#    schedule:
+#      trigger: interval
+#      seconds: 120
+
+validate_task:
+#  - name: http
+#    urls: ['http://httpbin.iclouds.work/ip']
+#    sources: []
+#    checker:
+#      name: anonymous
+#    dest: http
+#    schedule:
+#      trigger: interval
+#      seconds: 20
+#
+#  - name: https
+#    urls: [ 'https://httpbin.iclouds.work/ip' ]
+#    sources: [ ]
+#    checker:
+#      name: anonymous
+#    dest: https
+#    schedule:
+#      trigger: interval
+#      seconds: 20
+
+# check http self
+#  - name: http
+#    urls: ['http://httpbin.iclouds.work/ip']
+#    sources: [http]
+#    checker:
+#      name: anonymous
+#    dest: http
+#    schedule:
+#      trigger: interval
+#      seconds: 10
+
+# check https self
+#  - name: https
+#    urls: ['https://httpbin.iclouds.work/ip']
+#    sources: [https]
+#    checker:
+#      name: anonymous
+#    dest: https
+#    schedule:
+#      trigger: interval
+#      seconds: 20
+
+#  - name: alibaba
+#    urls: []
+#    sources: [https]
+#    dest: alibaba

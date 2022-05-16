@@ -213,6 +213,11 @@ Temporary Items
 ### Customs config
 .idea
 .vscode
-**settings.local.y[a]ml
 
+**/settings.local.yml
+
+**/spider_task.yml
+**/scene_task.yml
 demo.py
+
+**/.local
