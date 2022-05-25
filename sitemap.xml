@@ -2,17 +2,22 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://github.com/crawlerstack/crawlerstack-proxypool/</loc>
-         <lastmod>2022-05-16</lastmod>
+         <lastmod>2022-05-25</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/crawlerstack/crawlerstack-proxypool/todos/</loc>
-         <lastmod>2022-05-16</lastmod>
+         <lastmod>2022-05-25</lastmod>
          <changefreq>daily</changefreq>
     </url>
     <url>
          <loc>https://github.com/crawlerstack/crawlerstack-proxypool/%E8%AE%BE%E8%AE%A1/</loc>
-         <lastmod>2022-05-16</lastmod>
+         <lastmod>2022-05-25</lastmod>
+         <changefreq>daily</changefreq>
+    </url>
+    <url>
+         <loc>https://github.com/crawlerstack/crawlerstack-proxypool/config/parse_config/</loc>
+         <lastmod>2022-05-25</lastmod>
          <changefreq>daily</changefreq>
     </url>
 </urlset>
