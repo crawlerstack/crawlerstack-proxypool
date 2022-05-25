@@ -2,10 +2,11 @@
 import logging
 
 import pytest
+from httpx import Response
+
 from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
                                                      JsonExtractor,
                                                      proxy_check)
-from httpx import Response
 
 logger = logging.getLogger(__name__)
 
