@@ -20,3 +20,11 @@ class SceneProxyUpdate(BaseModel):
     def proxy_convert(cls, v: str):
         """将 proxy 转换类型"""
         return URL(v)
+
+
+class SceneIpProxyWithRegion(BaseModel):
+    name: str
+    ip: str
+    protocol: str
+    port: int
+    region: str

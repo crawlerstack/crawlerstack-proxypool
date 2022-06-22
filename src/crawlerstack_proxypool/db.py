@@ -230,7 +230,7 @@ def set_sqlite_pragma(dbapi_connection, _connection_record):
     :return:
     """
 
-    if isinstance(dbapi_connection, Connection):
-        cursor = dbapi_connection.cursor()
-        cursor.execute("PRAGMA foreign_keys=ON")
-        cursor.close()
+    # if isinstance(dbapi_connection, Connection):
+    #     cursor = dbapi_connection.cursor()
+    #     cursor.execute("PRAGMA foreign_keys=ON")
+    #     cursor.close()

@@ -14,8 +14,8 @@ from crawlerstack_proxypool import config
 from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.log import configure_logging
 from crawlerstack_proxypool.manage import ProxyPool
-from crawlerstack_proxypool.models import (BaseModel, IpProxyModel,
-                                           SceneProxyModel)
+from crawlerstack_proxypool.models import (BaseModel,
+                                           SceneProxyModel, RegionModel, IpModel, ProxyModel)
 
 configure_logging()
 
@@ -85,6 +85,7 @@ async def session(migrate, session_factory) -> AsyncSession:
 @pytest.fixture(autouse=True)
 def migrate(settings):
     """migrate fixture"""
+
     async def setup():
         """setup"""
         _engine: AsyncEngine = create_async_engine(settings.DATABASE)
@@ -105,29 +106,63 @@ def migrate(settings):
 
 
 @pytest.fixture()
-async def init_ip_proxy(session):
-    """初始化 ip_proxy 表的数据"""
+async def init_region(session):
+    async with session.begin():
+        regions = [
+            RegionModel(
+                name='China',
+                numeric='156',
+                code='CHN',
+            ),
+            RegionModel(
+                name='United States of America',
+                numeric='840',
+                code='USA',
+            )
+        ]
+        session.add_all(regions)
+
+
+@pytest.fixture()
+async def init_ip(session, init_region):
+    async with session.begin():
+        ips = [
+            IpModel(
+                value='127.0.0.1',
+                region_id=1,
+            ),
+            IpModel(
+                value='127.0.0.3',
+                region_id=2,
+            ),
+        ]
+        session.add_all(ips)
+
+
+@pytest.fixture()
+async def init_proxy(session, init_ip):
+    """init proxy"""
     async with session.begin():
         proxies = [
-            IpProxyModel(
-                ip='127.0.0.1',
+            ProxyModel(
                 protocol='http',
-                port=1081
+                port=1081,
+                ip_id=1,
             ),
-            IpProxyModel(
-                ip='127.0.0.3',
+            ProxyModel(
                 protocol='http',
-                port=6379
+                port=6379,
+                ip_id=2,
             ),
         ]
         session.add_all(proxies)
 
 
 @pytest.fixture()
-async def init_scene_proxy(session, init_ip_proxy):
+async def init_scene(session, init_proxy):
     """初始化 scene_proxy 表的数据"""
     async with session.begin():
-        result = await session.scalars(select(IpProxyModel))
+        result = await session.scalars(select(ProxyModel))
         objs = result.all()
         proxy_statuses = [
             SceneProxyModel(

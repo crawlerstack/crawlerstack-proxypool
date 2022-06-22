@@ -1,5 +1,5 @@
 """
-repository
+base repository
 """
 import dataclasses
 import logging
@@ -9,12 +9,9 @@ from sqlalchemy import delete, func
 from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.orm import joinedload
 
-from crawlerstack_proxypool import models
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import ModelT, SceneProxyModel
-from crawlerstack_proxypool.schema import SceneIpProxy
+from crawlerstack_proxypool.models import ModelT
 
 
 @dataclasses.dataclass
@@ -149,79 +146,3 @@ class BaseRepository(Generic[ModelT]):
         stmt = select(func.count()).filter(*and_condition).select_from(self.model)
         total = await self.session.scalar(stmt)
         return total
-
-
-class IpProxyRepository(BaseRepository[models.IpProxyModel]):
-    """
-    Ip 代理对象
-    """
-
-    @property
-    def model(self):
-        return models.IpProxyModel
-
-    async def get_by_uri(self, ip: str, port: int, protocol: str):
-        """
-        通过 uri 获取对象
-        :param ip:
-        :param port:
-        :param protocol:
-        :return:
-        """
-        return self.get_one_or_none(ip=ip, port=port, protocol=protocol)
-
-
-class SceneProxyRepository(BaseRepository[SceneProxyModel]):
-    """
-    场景代理
-    """
-
-    @property
-    def model(self):
-        """model"""
-        return SceneProxyModel
-
-    async def get_with_ip(self, /, limit: int = 10, offset: int = 0, **kwargs) -> list[SceneIpProxy]:
-        """get with ip"""
-        if not limit:
-            limit = 10
-        if not offset:
-            offset = 0
-        and_condition = [getattr(self.model, k) == v for k, v in kwargs.items()]
-        stmt = select(
-            self.model
-        ).filter(
-            *and_condition
-        ).limit(
-            limit
-        ).offset(
-            offset
-        ).order_by(
-            self.model.alive_count.desc(),
-            self.model.update_time.desc(),
-        ).options(
-            joinedload(self.model.ip_proxy)
-        )
-
-        result = await self.session.scalars(stmt)
-        scene_objs: list[SceneProxyModel] = result.all()
-        data = []
-        for obj in scene_objs:
-            data.append(SceneIpProxy(
-                name=obj.name,
-                ip=obj.ip_proxy.ip,
-                port=obj.ip_proxy.port,
-                protocol=obj.ip_proxy.protocol,
-            ))
-        return data
-
-    async def get_by_names(self, *names) -> list[SceneProxyModel]:
-        """通过多个名称获取"""
-        stmt = select(self.model).filter(
-            self.model.name.in_(names)
-        ).options(
-            joinedload(self.model.ip_proxy)
-        )
-        result = await self.session.scalars(stmt)
-        objs = result.all()
-        return objs

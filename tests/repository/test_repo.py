@@ -4,24 +4,23 @@ from sqlalchemy import func, select
 
 from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import IpProxyModel
-from crawlerstack_proxypool.repositories import IpProxyRepository
+from crawlerstack_proxypool.repositories import RegionRepository
 
 
 @pytest.fixture()
 async def repo(database: Database):
     """repo fixture"""
     async with database.session as session:
-        yield IpProxyRepository(session)
+        yield RegionRepository(session)
 
 
 @pytest.mark.asyncio
-async def test_get_all(repo, init_ip_proxy, session):
+async def test_get_all(repo, init_region, session):
     """test get all"""
     objs = await repo.get_all()
     assert objs
 
-    result = await session.scalar(select(func.count()).select_from(IpProxyModel))
+    result = await session.scalar(select(func.count()).select_from(repo.model))
     assert len(objs) == result
 
 
@@ -38,14 +37,14 @@ async def test_get_all(repo, init_ip_proxy, session):
     ]
 )
 @pytest.mark.asyncio
-async def test_get(repo, init_ip_proxy, session, limit, offset, expect_value):
+async def test_get(repo, init_region, session, limit, offset, expect_value):
     """test get"""
     objs = await repo.get(limit=limit, offset=offset)
     assert len(objs) == expect_value
 
 
 @pytest.mark.asyncio
-async def test_get_by_id(repo, init_ip_proxy):
+async def test_get_by_id(repo, init_region):
     """test get by ip"""
     assert await repo.get_by_id(1)
 
@@ -58,50 +57,50 @@ async def test_get_not_exist(repo):
 
 
 @pytest.mark.asyncio
+async def test_create(repo):
+    """test create"""
+    obj = await repo.create(name='China', numeric='156', code='CHN')
+    assert obj.id
+    count = await repo.session.scalar(select(func.count()).select_from(repo.model))
+    assert count == 1
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
-    'ip, protocol, port, expect_value',
+    'name, numeric, code, expect_value',
     [
-        ('127.0.0.1', 'http', '1081', 1),
-        ('127.0.0.1', 'https', '1081', 3),
+        ('China', '156', 'CHN', 1),
+        ('Russian Federation', '643', 'RUS', 3),
     ]
 )
-async def test_get_or_create(repo, init_ip_proxy, session, ip, protocol, port, expect_value):
+async def test_get_or_create(repo, init_region, session, name, numeric, code, expect_value):
     """test get or create"""
     obj = await repo.get_or_create(
         params={
-            'port': port
+            'code': code
         },
-        ip=ip,
-        protocol=protocol,
+        name=name,
+        numeric=numeric,
     )
     assert obj
     assert obj.id == expect_value
 
 
 @pytest.mark.asyncio
-async def test_create(repo):
-    """test create"""
-    obj = await repo.create(ip='192.168.10.10')
-    assert obj.id
-    count = await repo.session.scalar(select(func.count()).select_from(IpProxyModel))
-    assert count == 1
-
-
-@pytest.mark.asyncio
-async def test_update(repo, init_ip_proxy):
+async def test_update(repo, init_region):
     """test update"""
-    data = '100.100.100.100'
-    obj = await repo.session.scalar(select(IpProxyModel))
-    await repo.update(pk=obj.id, ip=data)
-    result = await repo.session.get(IpProxyModel, 1)
+    alpha_3 = 'foo'
+    obj = await repo.session.scalar(select(repo.model))
+    await repo.update(pk=obj.id, alpha_3=alpha_3)
+    result = await repo.session.get(repo.model, 1)
     assert obj.id == result.id
-    assert result.ip == data
+    assert result.alpha_3 == alpha_3
 
 
 @pytest.mark.asyncio
-async def test_delete(repo, init_ip_proxy):
+async def test_delete(repo, init_region):
     """test delete"""
-    obj = await repo.session.scalar(select(IpProxyModel))
+    obj = await repo.session.scalar(select(repo.model))
     before_count = await repo.count()
     await repo.delete(pk=obj.id)
     after_count = await repo.count()

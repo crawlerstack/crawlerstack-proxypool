@@ -8,17 +8,17 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.message import Message
-from crawlerstack_proxypool.repositories import (BaseRepository,
-                                                 IpProxyRepository,
-                                                 SceneProxyModel,
-                                                 SceneProxyRepository)
+from crawlerstack_proxypool.models import SceneProxyModel
+from crawlerstack_proxypool.repositories.base import BaseRepository
+from crawlerstack_proxypool.repositories.proxy import ProxyRepository
+from crawlerstack_proxypool.repositories.scene import SceneProxyRepository
+
 from crawlerstack_proxypool.signals import (start_fetch_proxy,
                                             start_validate_proxy)
 
 logger = logging.getLogger(__name__)
 
 
-@dataclasses.dataclass
 class CRUDMixin:  # noqa
     """
     CRUD mixin
@@ -84,20 +84,12 @@ class BaseService:
     _session: AsyncSession
 
 
-class IpProxyService(BaseService, CRUDMixin):
-    """Ip proxy service"""
-
-    @property
-    def repository(self):
-        return IpProxyRepository(self._session)
-
-
 @dataclasses.dataclass
 class SceneProxyService(BaseService, CRUDMixin):
     """Scene proxy service"""
 
     _proxy_status_repo: SceneProxyRepository = dataclasses.field(default=None, init=False)
-    _ip_proxy_repo: IpProxyRepository = dataclasses.field(default=None, init=False)
+    _proxy_repo: ProxyRepository = dataclasses.field(default=None, init=False)
 
     def __post_init__(self):
         self._proxy_status_repo = SceneProxyRepository(self._session)
@@ -116,11 +108,11 @@ class SceneProxyService(BaseService, CRUDMixin):
         return await self.repository.get_with_ip(limit=limit, offset=offset, **kwargs)
 
     @property
-    def ip_proxy_repo(self) -> IpProxyRepository:
+    def proxy_repo(self) -> ProxyRepository:
         """ip proxy repo"""
-        if not self._ip_proxy_repo:
-            self._ip_proxy_repo = IpProxyRepository(self._session)
-        return self._ip_proxy_repo
+        if not self._proxy_repo:
+            self._proxy_repo = ProxyRepository(self._session)
+        return self._proxy_repo
 
     async def get_by_names(self, *names):
         """get by names"""
