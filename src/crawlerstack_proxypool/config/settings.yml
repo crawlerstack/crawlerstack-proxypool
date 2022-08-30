@@ -1,4 +1,4 @@
-show_sql: true
+show_sql: false
 
 # Enable verbose mode to show more log detail message
 # Default is false

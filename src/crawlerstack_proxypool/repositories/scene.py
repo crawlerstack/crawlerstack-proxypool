@@ -2,7 +2,7 @@
 scene repository
 """
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, subqueryload, defaultload
+from sqlalchemy.orm import joinedload, subqueryload, defaultload, selectinload
 
 from crawlerstack_proxypool.models import SceneProxyModel, ProxyModel, IpModel, RegionModel
 from crawlerstack_proxypool.repositories.base import BaseRepository
@@ -50,10 +50,7 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
 
         condition = []
         if names:
-            if len(names) == 1:
-                condition.append(self.model.name == names[0])
-            else:
-                condition.append(self.model.name.in_(names))
+            condition.append(self.model.name.in_(names))
         # if protocol:
         #     condition.append(ProxyModel.protocol == protocol)
         # if region:
@@ -61,7 +58,7 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
 
         stmt = select(
             self.model
-        ).filter(
+        ).where(
             *condition
         ).limit(
             limit
@@ -71,25 +68,32 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
             self.model.alive_count.desc(),
             self.model.update_time.desc(),
         ).options(
-            defaultload(
-                self.model.proxy.and_(ProxyModel.protocol == protocol)
-            ).joinedload(
+            # 这里使用 selectinload 使用急切加载
+            # https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#preventing-implicit-io-when-using-asyncsession
+            selectinload(
+                # 使用 and 条件
+                # https://docs.sqlalchemy.org/en/14/orm/queryguide.html#augmenting-built-in-on-clauses
+                self.model.proxy.and_(ProxyModel.protocol == protocol) if protocol else self.model.proxy
+            ).selectinload(
                 ProxyModel.ip
-            ).joinedload(
-                IpModel.region
+            ).selectinload(
+                IpModel.region.and_(RegionModel.code == region) if region else IpModel.region
             )
         )
 
-        print(stmt)
         result = await self.session.scalars(stmt)
         scene_objs: list[SceneProxyModel] = result.all()
         data = []
-        # for obj in scene_objs:
-        #     data.append(SceneIpProxyWithRegion(
-        #         name=obj.name,
-        #         ip=obj.proxy.ip.value,
-        #         port=obj.proxy.port,
-        #         protocol=obj.proxy.protocol,
-        #         region=obj.proxy.ip.region.code
-        #     ))
+        for obj in scene_objs:
+            if obj.proxy is None:
+                continue
+            if obj.proxy.ip.region is None:
+                continue
+            data.append(SceneIpProxyWithRegion(
+                name=obj.name,
+                ip=obj.proxy.ip.value,
+                port=obj.proxy.port,
+                protocol=obj.proxy.protocol,
+                region=obj.proxy.ip.region.code
+            ))
         return data

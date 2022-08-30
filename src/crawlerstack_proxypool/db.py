@@ -47,7 +47,7 @@ class Database(metaclass=SingletonMeta):
         if not self._engine:
             self._engine = create_async_engine(
                 self.settings.DATABASE,
-                # echo=True,
+                echo=self.settings.SHOW_SQL,
                 future=True,
             )
         return self._engine

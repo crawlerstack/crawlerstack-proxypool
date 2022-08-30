@@ -55,7 +55,7 @@ async def engine(settings):
     _engine: AsyncEngine = create_async_engine(
         # 'mysql+pymysql://root:000000@localhost/proxypool',
         settings.DATABASE,
-        echo=True,
+        echo=settings.SHOW_TEST_SQL,
     )
     try:
         yield _engine
@@ -150,7 +150,7 @@ async def init_proxy(session, init_ip):
                 ip_id=1,
             ),
             ProxyModel(
-                protocol='http',
+                protocol='socks5',
                 port=6379,
                 ip_id=2,
             ),
