@@ -2,7 +2,7 @@
 scene repository
 """
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload, subqueryload, defaultload, selectinload
+from sqlalchemy.orm import contains_eager
 
 from crawlerstack_proxypool.models import SceneProxyModel, ProxyModel, IpModel, RegionModel
 from crawlerstack_proxypool.repositories.base import BaseRepository
@@ -36,12 +36,68 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         :param protocol:    http/https/socks4/socks5
         :param region:  region code. Eg: CHN/USA
         :return:
-        """
-        # 将其他表的过滤条件放在 JOIN 中
-        # https://docs.sqlalchemy.org/en/14/orm/internals.html#sqlalchemy.orm.PropComparator.and_
-        # 使用时遇到个 BUG，即再使用 joinedload 做链式 JOIN 时，
-        # 如果第一个 JOIN 时使用了 and_ 条件，该条件会一并出现在后续所有的 JOIN 中。
 
+
+        在多条件 JOIN 加载数据，同时需要立即加载关联表数据时，可以使用带有急切加载的 JOIN
+        https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#joined-eager-loading
+        https://docs.sqlalchemy.org/en/14/orm/internals.html#sqlalchemy.orm.PropComparator.and_
+
+        但是在使用时会存在一个问题，暂时不知道是不是 BUG 。
+        即：当多个 joinedload 级联使用当时候，第一个 joinedload 的条件会应用到后续到的 joinedload 中：
+
+        ```python
+        stmt = select(
+            self.model
+        ).options(
+            joinedload(
+                self.model.proxy.and_(ProxyModel.protocol == protocol) if protocol else self.model.proxy,
+                innerjoin=True,
+            ).joinedload(
+                ProxyModel.ip,
+                innerjoin=True,
+            ).joinedload(
+                IpModel.region.and_(RegionModel.code == region) if region else IpModel.region,
+                innerjoin=True,
+            )
+        )
+        ```
+
+        生产的 SQL 是这样的：
+
+        ```sql
+        SELECT
+            scene.id,
+            scene.name,
+            scene.alive_count,
+            scene.update_time,
+            scene.proxy_id,
+            region_1.id AS id_1,
+            region_1.name AS name_1,
+            region_1.numeric,
+            region_1.code,
+            ip_1.id AS id_2,
+            ip_1.value,
+            ip_1.region_id,
+            proxy_1.id AS id_3,
+            proxy_1.protocol,
+            proxy_1.port,
+            proxy_1.ip_id
+        FROM
+            scene
+            JOIN proxy AS proxy_1 ON proxy_1.id = scene.proxy_id
+            AND proxy_1.protocol = :protocol_1
+            JOIN ip AS ip_1 ON ip_1.id = proxy_1.ip_id
+            AND proxy_1.protocol = :protocol_2
+            JOIN region AS region_1 ON region_1.id = ip_1.region_id
+            AND region_1.code = :code_1
+        ```
+
+        可以看到在 join `ip` 表的时候添加了额外的条件，这是错误的，并且当 `region` 表没有条件的时候，也会将该条件应用到这个表。
+
+        针对这种情况就需要在 JOIN 之后使用 `contains_eager` 指定需要加载的关系即可。
+
+        https://docs.sqlalchemy.org/en/14/orm/loading_relationships.html#routing-explicit-joins-statements-into-eagerly-loaded-collections
+        """
         if not limit:
             limit = 10
 
@@ -51,33 +107,31 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         condition = []
         if names:
             condition.append(self.model.name.in_(names))
-        # if protocol:
-        #     condition.append(ProxyModel.protocol == protocol)
-        # if region:
-        #     condition.append(RegionModel.code == region)
 
         stmt = select(
             self.model
-        ).where(
-            *condition
-        ).limit(
-            limit
-        ).offset(
-            offset
-        ).order_by(
-            self.model.alive_count.desc(),
-            self.model.update_time.desc(),
-        ).options(
-            # 这里使用 selectinload 使用急切加载
-            # https://docs.sqlalchemy.org/en/14/orm/extensions/asyncio.html#preventing-implicit-io-when-using-asyncsession
-            selectinload(
-                # 使用 and 条件
-                # https://docs.sqlalchemy.org/en/14/orm/queryguide.html#augmenting-built-in-on-clauses
+            ).where(
+                *condition
+            ).limit(
+                limit
+            ).offset(
+                offset
+            ).order_by(
+                self.model.alive_count.desc(),
+                self.model.update_time.desc(),
+            ).join(
                 self.model.proxy.and_(ProxyModel.protocol == protocol) if protocol else self.model.proxy
-            ).selectinload(
+            ).join(
                 ProxyModel.ip
-            ).selectinload(
+            ).join(
                 IpModel.region.and_(RegionModel.code == region) if region else IpModel.region
+        ).options(
+            contains_eager(
+                self.model.proxy
+            ).contains_eager(
+                ProxyModel.ip,
+            ).contains_eager(
+                IpModel.region
             )
         )
 
