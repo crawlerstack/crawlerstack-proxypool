@@ -165,17 +165,12 @@ async def test_spider_is_idle(
 
 
 @pytest.mark.asyncio
-async def test_open_spider(mocker, execute_engine):
+async def test_open_spider(mocker, foo_spider, execute_engine):
     """test spider run"""
     loop_call = mocker.patch.object(execute_engine, 'loop_call')
-    open_spider = mocker.patch.object(Foo, 'open_spider')
-    # 注意：这里不能使用 foo_spider 的 fixture 。因为它会先将 open_spider 绑定到事件上，
-    # 导致上面一行的逻辑无法 Mock 到 open_spider 。
-    spider = Foo(name='test', start_urls=['https://example.com'])
-    await execute_engine.open_spider(spider)
+    await execute_engine.open_spider(foo_spider)
 
     loop_call.assert_called_once()
-    open_spider.assert_called_once()
 
 
 @pytest.mark.asyncio

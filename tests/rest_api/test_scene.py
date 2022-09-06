@@ -2,7 +2,7 @@
 import pytest
 from sqlalchemy import select
 
-from crawlerstack_proxypool.models import IpProxyModel, SceneProxyModel
+from crawlerstack_proxypool.models import SceneProxyModel, ProxyModel
 
 
 def test_get(rest_api_client, api_url_factory, init_scene_proxy):
@@ -28,10 +28,10 @@ async def test_put(rest_api_client, api_url_factory, init_scene_proxy, session):
 
     assert response.status_code == 200
 
-    stmt = select(IpProxyModel).filter(
-        IpProxyModel.protocol == protocol,
-        IpProxyModel.port == port,
-        IpProxyModel.ip == host,
+    stmt = select(ProxyModel).filter(
+        ProxyModel.protocol == protocol,
+        ProxyModel.port == port,
+        ProxyModel.ip.value == host,
     )
     ip_proxy_obj = await session.scalar(stmt)
 

@@ -1,6 +1,7 @@
 """
 Utils.
 """
+from pydantic import AnyUrl
 
 
 class SingletonMeta(type):
@@ -27,3 +28,6 @@ def update_db_settings(settings, db_file: str = 'proxypool.db'):
         local_path = settings.LOCALPATH
         db_file = local_path / db_file
         settings.DATABASE = f'sqlite+aiosqlite:///{db_file}'
+
+
+ALLOW_PROXY_SCHEMA = ('http', 'https', 'socks5')

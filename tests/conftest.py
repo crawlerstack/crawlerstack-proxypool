@@ -1,6 +1,8 @@
 """Test config"""
 import asyncio
+import contextlib
 from datetime import datetime
+from typing import Type
 
 import pytest
 from click.testing import CliRunner
@@ -16,6 +18,7 @@ from crawlerstack_proxypool.log import configure_logging
 from crawlerstack_proxypool.manage import ProxyPool
 from crawlerstack_proxypool.models import (BaseModel,
                                            SceneProxyModel, RegionModel, IpModel, ProxyModel)
+from crawlerstack_proxypool.repositories.base import BaseRepository
 
 configure_logging()
 
@@ -154,6 +157,16 @@ async def init_proxy(session, init_ip):
                 port=6379,
                 ip_id=2,
             ),
+            ProxyModel(
+                protocol='socks5',
+                port=8080,
+                ip_id=1,
+            ),
+            ProxyModel(
+                protocol='socks5',
+                port=9090,
+                ip_id=1,
+            ),
         ]
         session.add_all(proxies)
 
@@ -168,7 +181,7 @@ async def init_scene(session, init_proxy):
             SceneProxyModel(
                 proxy_id=objs[0].id,
                 name='http',
-                alive_count=10,
+                alive_count=5,
                 update_time=datetime.now()
             ),
             SceneProxyModel(
@@ -187,6 +200,18 @@ async def init_scene(session, init_proxy):
                 proxy_id=objs[1].id,
                 name='alibaba',
                 alive_count=5,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                proxy_id=objs[2].id,
+                name='alibaba',
+                alive_count=0,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                proxy_id=objs[3].id,
+                name='alibaba',
+                alive_count=-1,
                 update_time=datetime.now()
             ),
         ]
@@ -217,5 +242,17 @@ def api_url_factory():
 
     def factory(api: str):
         return f'/api/{API_VERSION}{api}'
+
+    return factory
+
+
+@pytest.fixture()
+def repo_factory(database):
+    """repo factory"""
+    @contextlib.asynccontextmanager
+    async def factory(repo_kls: Type[BaseRepository]):
+        async with database.session as session:
+            async with session.begin():
+                yield repo_kls(session) # noqa
 
     return factory

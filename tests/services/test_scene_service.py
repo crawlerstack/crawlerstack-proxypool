@@ -5,7 +5,7 @@ from httpx import URL
 
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.models import SceneProxyModel
-from crawlerstack_proxypool.service import IpProxyService, SceneProxyService
+from crawlerstack_proxypool.service import SceneProxyService
 
 
 @pytest.fixture
@@ -15,15 +15,8 @@ async def scene_service(database):
         yield SceneProxyService(session)
 
 
-@pytest.fixture
-async def ip_proxy_service(database):
-    """service fixture"""
-    async with database.session as session:
-        yield IpProxyService(session)
-
-
 @pytest.mark.asyncio
-async def test_get_by_name(scene_service, init_scene_proxy):
+async def test_get_by_name(scene_service, init_scene):
     """test get by name"""
     res = await scene_service.get_by_names('http', 'https')
     assert res
@@ -75,7 +68,7 @@ async def test_save_scene_proxy(session, scene_service, init_scene_proxy, url, a
     ]
 )
 @pytest.mark.asyncio
-async def test_decrease(session, scene_service, ip_proxy_service, init_scene_proxy, url, dest, expect_value):
+async def test_decrease(session, scene_service, ip_proxy_service, init_scene, url, dest, expect_value):
     """test decrease"""
     _url = URL(url)
     await scene_service.decrease(_url, dest)

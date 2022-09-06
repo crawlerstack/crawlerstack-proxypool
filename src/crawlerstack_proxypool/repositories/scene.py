@@ -1,12 +1,13 @@
 """
 scene repository
 """
-from sqlalchemy import select
+from sqlalchemy import select, update, delete
 from sqlalchemy.orm import contains_eager
 
+from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
 from crawlerstack_proxypool.models import SceneProxyModel, ProxyModel, IpModel, RegionModel
 from crawlerstack_proxypool.repositories.base import BaseRepository
-from crawlerstack_proxypool.schema import SceneIpProxy, SceneIpProxyWithRegion
+from crawlerstack_proxypool.schema import SceneIpProxyWithRegion, SceneProxyUpdate
 
 
 class SceneProxyRepository(BaseRepository[SceneProxyModel]):
@@ -19,6 +20,50 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         """model"""
         return SceneProxyModel
 
+    async def update_proxy(self, obj_in: SceneProxyUpdate) -> SceneProxyModel | None:
+        """update proxy, if proxy alive count < 1, delete it."""
+        protocol = obj_in.proxy.scheme
+        port = obj_in.proxy.port
+        ip = obj_in.proxy.host
+        name = obj_in.name
+
+        stmt = select(
+            self.model
+        ).where(
+            self.model.name == name,
+        ).join(
+            self.model.proxy.and_(
+                ProxyModel.protocol == protocol,
+                ProxyModel.port == port
+            )
+        ).join(
+            ProxyModel.ip.and_(IpModel.value == ip)
+        ).options(
+            contains_eager(
+                self.model.proxy
+            ).contains_eager(
+                ProxyModel.ip
+            )
+        )
+
+        obj: SceneProxyModel = await self.session.scalar(stmt)
+        if obj:
+            if obj.alive_count > 0:
+                stmt = update(self.model).where(
+                    self.model.id == obj.id
+                ).values(
+                    {'alive_count': self.model.alive_count - 1}
+                ).execution_options(synchronize_session="fetch")
+                await self.session.execute(stmt)
+                return obj
+            else:
+                stmt = delete(self.model).where(
+                    self.model.id == obj.id
+                ).execution_options(synchronize_session="fetch")
+                await self.session.execute(stmt)
+        else:
+            raise ObjectDoesNotExist()
+
     async def get_proxy_with_region(
             self,
             /,
@@ -27,7 +72,7 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
             names: list[str] = None,
             protocol: str | None = None,
             region: str | None = None,
-    ) -> list[SceneIpProxyWithRegion]:
+    ) -> list[SceneProxyModel]:
         """
         get with ip
         :param limit:
@@ -104,27 +149,27 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         if not offset:
             offset = 0
 
-        condition = []
+        condition = [self.model.alive_count > 0]
         if names:
             condition.append(self.model.name.in_(names))
 
         stmt = select(
             self.model
-            ).where(
-                *condition
-            ).limit(
-                limit
-            ).offset(
-                offset
-            ).order_by(
-                self.model.alive_count.desc(),
-                self.model.update_time.desc(),
-            ).join(
-                self.model.proxy.and_(ProxyModel.protocol == protocol) if protocol else self.model.proxy
-            ).join(
-                ProxyModel.ip
-            ).join(
-                IpModel.region.and_(RegionModel.code == region) if region else IpModel.region
+        ).where(
+            *condition
+        ).limit(
+            limit
+        ).offset(
+            offset
+        ).order_by(
+            self.model.alive_count.desc(),
+            self.model.update_time.desc(),
+        ).join(
+            self.model.proxy.and_(ProxyModel.protocol == protocol) if protocol else self.model.proxy
+        ).join(
+            ProxyModel.ip
+        ).join(
+            IpModel.region.and_(RegionModel.code == region) if region else IpModel.region
         ).options(
             contains_eager(
                 self.model.proxy
@@ -143,11 +188,5 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
                 continue
             if obj.proxy.ip.region is None:
                 continue
-            data.append(SceneIpProxyWithRegion(
-                name=obj.name,
-                ip=obj.proxy.ip.value,
-                port=obj.proxy.port,
-                protocol=obj.proxy.protocol,
-                region=obj.proxy.ip.region.code
-            ))
+            data.append(obj)
         return data
