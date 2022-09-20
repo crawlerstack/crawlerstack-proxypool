@@ -6,13 +6,13 @@ from httpx import URL
 from sqlalchemy import select
 
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import ProxyModel, IpModel, SceneProxyModel
+from crawlerstack_proxypool.models import IpModel, ProxyModel, SceneProxyModel
 from crawlerstack_proxypool.repositories import SceneProxyRepository
-from crawlerstack_proxypool.schema import SceneProxyUpdate
+from crawlerstack_proxypool.schema import CheckedProxy
 
 
 @pytest.fixture
-async def scene_proxy_repo(database):
+async def repo(database):
     """scene proxy repo fixture"""
     async with database.session as session:
         yield SceneProxyRepository(session)
@@ -38,7 +38,7 @@ async def scene_proxy_repo(database):
         ([], 'socks5', 'USA', None, None, 1),
     ]
 )
-async def test_get(scene_proxy_repo, init_scene, names, protocol, region, limit, offset, expect_value):
+async def test_get(repo, init_scene, names, protocol, region, limit, offset, expect_value):
     """test get"""
     kwargs = {
         'limit': limit,
@@ -51,14 +51,15 @@ async def test_get(scene_proxy_repo, init_scene, names, protocol, region, limit,
     if region:
         kwargs.setdefault('region', region)
 
-    res = await scene_proxy_repo.get_proxy_with_region(**kwargs)
+    res = await repo.get_proxy_with_region(**kwargs)
     assert len(res) == expect_value
 
 
 @pytest.mark.parametrize(
     'name, protocol, ip, port, expect_value',
     [
-        ('alibaba', 'socks5', '127.0.0.3', '6379', 4),
+        ('alibaba', 'http', '127.0.0.1', '1081', 9),
+        ('alibaba', 'socks5', '127.0.0.3', '6379', None),
         ('alibaba', 'socks5', '127.0.0.1', '8080', None),
         ('foo', 'socks5', '127.0.0.3', '6379', ObjectDoesNotExist),
 
@@ -67,9 +68,10 @@ async def test_get(scene_proxy_repo, init_scene, names, protocol, region, limit,
 @pytest.mark.asyncio
 async def test_update_proxy(session, repo_factory, init_scene, name, protocol, ip, port, expect_value):
     """test update proxy"""
-    obj_in = SceneProxyUpdate(
-        proxy=URL(f'{protocol}://{ip}:{port}', scheme=protocol),
-        name=name
+    obj_in = CheckedProxy(
+        url=URL(f'{protocol}://{ip}:{port}', scheme=protocol),
+        name=name,
+        alive=False,
     )
 
     if inspect.isclass(expect_value):
@@ -98,3 +100,18 @@ async def test_update_proxy(session, repo_factory, init_scene, name, protocol, i
             assert obj.alive_count == expect_value
         else:
             assert obj == expect_value
+
+
+@pytest.mark.parametrize(
+    'names, expect_value',
+    [
+        (['http'], 1),
+        (['https'], 1),
+        (['alibaba'], 4),
+        (['http', 'https'], 2),
+    ]
+)
+@pytest.mark.asyncio
+async def test_get_by_names(init_scene, repo, names, expect_value):
+    res = await repo.get_by_names(names)
+    assert len(res) == expect_value

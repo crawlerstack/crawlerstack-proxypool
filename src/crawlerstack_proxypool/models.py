@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import TypeVar
 
-from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Index
-from sqlalchemy.orm import declarative_base, relationship, declared_attr
+from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
+from sqlalchemy.orm import declarative_base, declared_attr, relationship
 
 
 class CustomsBase:
@@ -62,7 +62,7 @@ class IpModel(BaseModel):
 
     value = Column(String(255), nullable=False, comment='Ip address')
 
-    region_id = Column(Integer, ForeignKey('region.id', ondelete='CASCADE'), nullable=False)
+    region_id = Column(Integer, ForeignKey('region.id', ondelete='CASCADE'), nullable=True)
 
     proxies = relationship(
         'ProxyModel',

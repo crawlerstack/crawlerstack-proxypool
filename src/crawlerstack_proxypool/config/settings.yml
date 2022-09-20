@@ -20,6 +20,8 @@ logpath: logs
 host: 127.0.0.1
 port: 8000
 
+default_page_limit: 20
+
 # Database config.
 # Default is sqlite+aiosqlite:////<project_path>/.local/proxypool.db
 #database: sqlite+aiosqlite:////tmp/crawlerstack_proxypool

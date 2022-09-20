@@ -10,6 +10,7 @@ from sqlalchemy.engine import Result
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from crawlerstack_proxypool.config import settings
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
 from crawlerstack_proxypool.models import ModelT
 
@@ -40,7 +41,7 @@ class BaseRepository(Generic[ModelT]):
     async def get(
             self,
             /,
-            limit: int = 10,
+            limit: int = settings.DEFAULT_PAGE_LIMIT,
             offset: int = 0,
             **kwargs,
     ) -> list[ModelT]:

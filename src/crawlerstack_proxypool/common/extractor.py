@@ -1,18 +1,17 @@
 """
 Extractor
 """
-import abc
 import dataclasses
 import ipaddress
 import json
 import logging
-from typing import Type, TypeVar
+from typing import Type
 
 from httpx import Response
 from lxml import etree
 from lxml.etree import Element
 
-from crawlerstack_proxypool.aio_scrapy.spider import Spider
+from crawlerstack_proxypool.common.parser import BaseParser, ParserParams
 
 logger = logging.getLogger(__name__)
 
@@ -34,98 +33,56 @@ def proxy_check(ip_address: str, port: int) -> bool:
     return True
 
 
-@dataclasses.dataclass
-class ExtractorKwargs:
-    """
-    Default extractor kwargs data class.
-    """
-    _ = dataclasses.KW_ONLY
+# @dataclasses.dataclass
+# class HtmlExtractorParams(ParserParams):
+#     """
+#     Html extractor 参数
+#     """
+#     rows_rule: str | None = '//tr'
+#     row_start: int | None = 1
+#     row_end: int | None = None
+#     columns_rule: str | None = 'td'
+#     ip_position: int | None = 0
+#     port_position: int | None = 1
+#     ip_rule: str = 'text()'
+#     port_rule: str = 'text()'
+
+class HtmlExtractorParams:
+
+    def __init__(
+            self,
+            row_rule: str | None = '//tr',
+            row_start: int | None = 1,
+            row_end: int | None = None,
+            columns_rule: str | None = 'td',
+            ip_position: int | None = 0,
+            port_position: int | None = 1,
+            ip_rule: str = 'text()',
+            port_rule: str = 'text()',
+    ):
+        self.row_rule = row_rule
+        self.row_start = row_start
+        self.row_end = row_end
+        self.columns_rule = columns_rule
+        self.ip_position = ip_position
+        self.port_position = port_position
+        self.ip_rule = ip_rule
+        self.port_rule = port_rule
 
 
-ExtractorKwargsType = TypeVar('ExtractorKwargsType', bound=ExtractorKwargs)
-
-
-class BaseExtractor(metaclass=abc.ABCMeta):
-    """
-    抽象 extractor 类
-    """
-    KWARGS_KLS: Type[ExtractorKwargsType] = ExtractorKwargs
-
-    def __init__(self, spider: Spider):
-        self.spider = spider
-        self._kwargs = None
-
-    @classmethod
-    def from_kwargs(cls, spider: Spider, **kwargs):
-        """
-        从参数规范列表中初始化 extractor
-        :param spider:
-        :param kwargs:
-        :return:
-        """
-        obj = cls(spider)
-        obj.init_kwargs(**kwargs)
-        return obj
-
-    def init_kwargs(self, **kwargs):
-        """
-        使用参数初始化参数对象
-        :param kwargs:
-        :return:
-        """
-        self._kwargs = self.KWARGS_KLS(**kwargs)  # noqa
-
-    @property
-    def kwargs(self):
-        """
-        kwargs
-        :return:
-        """
-        if self._kwargs is None:
-            raise Exception(f'You should call {self.__class__}.init_kwargs to init kwargs first.')
-        return self._kwargs
-
-    @abc.abstractmethod
-    async def parse(self, response: Response, **kwargs):
-        """
-        解析逻辑
-        :param response:
-        :param kwargs:
-        :return:
-        """
-        raise NotImplementedError()
-
-
-ExtractorType = TypeVar('ExtractorType', bound=BaseExtractor)
-
-
-@dataclasses.dataclass
-class HtmlExtractorKwargs(ExtractorKwargs):
-    """
-    Html extractor 参数
-    """
-    rows_rule: str | None = '//tr'
-    row_start: int | None = 1
-    row_end: int | None = None
-    columns_rule: str | None = 'td'
-    ip_position: int | None = 0
-    port_position: int | None = 1
-    ip_rule: str | None = 'text()'
-    port_rule: str | None = 'text()'
-
-
-class HtmlExtractor(BaseExtractor):
+class HtmlExtractor(BaseParser):
     """
     html extractor
     """
-    KWARGS_KLS: Type[HtmlExtractorKwargs] = HtmlExtractorKwargs
+    NAME = 'html'
+    PARAMS_KLS: Type[HtmlExtractorParams] = HtmlExtractorParams
 
     async def parse(self, response: Response, **kwargs):
         html = etree.HTML(response.text)
         items = []
-        rows = html.xpath(self._kwargs.rows_rule)[self._kwargs.row_start:]
-        if self._kwargs.row_end is not None:
-            rows = rows[:self._kwargs.row_end]
+        rows = html.xpath(self._params.rows_rule)[self._params.row_start:]
+        if self._params.row_end is not None:
+            rows = rows[:self._params.row_end]
 
         for row in rows:
             row_html = etree.tostring(row).decode()
@@ -145,24 +102,20 @@ class HtmlExtractor(BaseExtractor):
         row_html = etree.tostring(row).decode()
         try:
             proxy_ip = ''
-            if self._kwargs.columns_rule:
-                columns = row.xpath(self._kwargs.columns_rule)
+            if self._params.columns_rule:
+                columns = row.xpath(self._params.columns_rule)
                 if columns:
-                    _ip = columns[self._kwargs.ip_position]
-                    proxy_ip = _ip.text
-                    if self._kwargs.ip_rule:
-                        proxy_ip = _ip.xpath(self._kwargs.ip_rule)[0]
-                    if self._kwargs.port_position:
-                        port = columns[self._kwargs.port_position]
-                        port_str = port.text
-                        if self._kwargs.port_rule:
-                            port_str = port.xpath(self._kwargs.port_rule)[0]
-                        proxy_ip = f'{proxy_ip}:{port_str}'
+                    _ip = columns[self._params.ip_position]
+                    proxy_ip = _ip.xpath(self._params.ip_rule)[0]
+
+                    if self._params.port_position:
+                        port = self._extract_port(columns[self._params.port_position])
+                        proxy_ip = f'{proxy_ip}:{port}'
             else:
                 proxy_ip = row_html
             if proxy_ip and proxy_check(*proxy_ip.split(':')):
                 return [
-                    f'http://{proxy_ip}',
+                    f'http://{proxy_ip}',  # noqa
                     f'https://{proxy_ip}'
                 ]
         # I'm not sure if it's going to cause anything else.
@@ -171,9 +124,16 @@ class HtmlExtractor(BaseExtractor):
             logger.warning('Parse row error %s. \n%s', ex, row_html)
         return None
 
+    def _extract_port(self, ele: Element) -> str:
+        if self._params.port_rule:
+            port_str = ele.xpath(self._params.port_rule)[0]
+        else:
+            port_str = ele.text
+        return port_str
+
 
 @dataclasses.dataclass
-class JsonExtractorKwargs:
+class JsonExtractorParams(ParserParams):
     """
     Json extractor 参数
     """
@@ -182,10 +142,10 @@ class JsonExtractorKwargs:
     port_key: str = 'port'
 
 
-class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
+class JsonExtractor(BaseParser):  # pylint: disable=too-few-public-methods
     """Json response extractor"""
-    name = 'json'
-    KWARGS_KLS = JsonExtractorKwargs
+    NAME = 'json'
+    PARAMS_KLS: Type[JsonExtractorParams] = JsonExtractorParams
 
     async def parse(self, response: Response, **kwargs) -> list[str]:
         """
@@ -197,12 +157,12 @@ class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
         items = []
         for info in infos:
             try:
-                _ip = info.get(self._kwargs.ip_key)
-                port = info.get(self._kwargs.port_key)
+                _ip = info.get(self._params.ip_key)
+                port = info.get(self._params.port_key)
                 if not proxy_check(_ip, port):
                     continue
 
-                items.append(f'http://{_ip}:{port}')
+                items.append(f'http://{_ip}:{port}')  # noqa
                 items.append(f'https://{_ip}:{port}')
             # I'm not sure if it's going to cause anything else.
             # But I want to avoid a problem that could cause a program to fail

@@ -14,7 +14,7 @@ from httpx import URL
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
-from crawlerstack_proxypool.common import BaseExtractor, ParserFactory
+from crawlerstack_proxypool.common import ParserFactoryProduce, ParserFactoryName, BaseParser
 from crawlerstack_proxypool.common.checker import CheckedProxy
 from crawlerstack_proxypool.config import settings
 from crawlerstack_proxypool.db import session_provider
@@ -47,15 +47,17 @@ class TaskManager:
         start_fetch_proxy.connect(self.trigger_fetch_job)
         start_validate_proxy.connect(self.trigger_validate_job)
 
+        self.parser_factory_produce = ParserFactoryProduce()
+
     def load_task(self):
         """
         从配置中加载任务。
 
         :return:
         """
-        fetch_task_config = settings.get('fetch_task')
+        fetch_task_config = settings.FETCH_TASK
         logger.debug('Loaded fetch task config from settings. Detail: %s', fetch_task_config)
-        validate_task_config = settings.get('validate_task')
+        validate_task_config = settings.VALIDATE_TASK
         logger.debug('Loaded validate task config from settings. Detail: %s', validate_task_config)
 
         if fetch_task_config:
@@ -71,12 +73,13 @@ class TaskManager:
         """
         for config in fetch_config:
             name = config['name']
-            parser = config['extractor']
+            parser_name = config['extractor']['name']
+            parser_params = config['extractor']['params']
             schedule = config['schedule']
             spider = FetchSpiderTask(
                 name=name,
                 urls=config['urls'],
-                parser_kls=ParserFactory(**parser).get_extractor(),
+                parser_kls=self.parser_factory_produce.get_factory(ParserFactoryName.extractor).get_parser(parser_name),
                 dest=config['dest']
             )
             task = self.scheduler.add_job(
@@ -92,13 +95,14 @@ class TaskManager:
         for config in validate_config:
             name = config['name']
             sources = config['sources']
-            checker = config['checker']
+            checker_name = config['checker']['name']
+            checker_params = config['checker']['params']
             schedule = config['schedule']
             spider = ValidateSpiderTask(
                 name=name,
                 dest=config['dest'],
                 check_urls=config['urls'],
-                parser_kls=ParserFactory(**checker).get_checker(),
+                parser_kls=self.parser_factory_produce.get_factory(ParserFactoryName.checker).get_parser(checker_params),
                 sources=sources,
             )
             task = self.scheduler.add_job(
@@ -163,7 +167,7 @@ class FetchSpiderTask:
     name: str
     urls: list[str]
     dest: list[str]
-    parser_kls: Type[BaseExtractor] | None = None
+    parser_kls: Type[BaseParser] | None = None
 
     async def start_urls(self):
         """start urls"""
@@ -193,7 +197,7 @@ class ValidateSpiderTask:
     name: str
     dest: str
     check_urls: list[str]
-    parser_kls: Type[BaseExtractor] | None = None
+    parser_kls: Type[BaseParser] | None = None
     sources: list[str] | None = dataclasses.field(default_factory=list)
 
     @session_provider(auto_commit=True)
@@ -215,7 +219,7 @@ class ValidateSpiderTask:
         :return:
         """
         service = ValidateSpiderService(session)
-        await service.save(proxy, self.dest)
+        await service.init_proxy(proxy)
 
     async def start(self):
         """start task"""

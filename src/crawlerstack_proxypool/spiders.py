@@ -8,17 +8,17 @@ from httpx import URL, Response
 
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.spider import Spider as ScrapySpider
-from crawlerstack_proxypool.common.extractor import ExtractorType
+from crawlerstack_proxypool.common import ParserType
 
 
-class Spider(ScrapySpider, typing.Generic[ExtractorType]):
+class Spider(ScrapySpider, typing.Generic[ParserType]):
     """spider"""
 
     def __init__(
             self,
             *, name: str,
             start_urls: list[str] | Iterator[str] | AsyncIterator[str],
-            parser_kls: Type[ExtractorType],
+            parser_kls: Type[ParserType],
             pipeline: typing.Callable,
             **kwargs
     ):
@@ -44,7 +44,7 @@ class ValidateSpider(Spider):
             name: str,
             start_urls: list[str] | Iterator[str] | AsyncIterator[str],
             check_urls: list[str],
-            parser_kls: Type[ExtractorType],
+            parser_kls: Type[ParserType],
             pipeline: typing.Callable,
             **kwargs
     ):

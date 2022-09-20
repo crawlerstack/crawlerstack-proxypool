@@ -1,13 +1,15 @@
 """
 scene repository
 """
-from sqlalchemy import select, update, delete
-from sqlalchemy.orm import contains_eager
+from sqlalchemy import delete, select, update
+from sqlalchemy.orm import contains_eager, joinedload
 
+from crawlerstack_proxypool.config import settings
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
-from crawlerstack_proxypool.models import SceneProxyModel, ProxyModel, IpModel, RegionModel
+from crawlerstack_proxypool.models import (IpModel, ProxyModel, RegionModel,
+                                           SceneProxyModel)
 from crawlerstack_proxypool.repositories.base import BaseRepository
-from crawlerstack_proxypool.schema import SceneIpProxyWithRegion, SceneProxyUpdate
+from crawlerstack_proxypool.schema import CheckedProxy
 
 
 class SceneProxyRepository(BaseRepository[SceneProxyModel]):
@@ -20,11 +22,28 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         """model"""
         return SceneProxyModel
 
-    async def update_proxy(self, obj_in: SceneProxyUpdate) -> SceneProxyModel | None:
+    async def get_by_names(self, names) -> list[SceneProxyModel]:
+        """get by names"""
+        stmt = select(
+            self.model
+        ).where(
+            self.model.name.in_(names)
+        ).options(
+            joinedload(
+                self.model.proxy
+            ).joinedload(
+                ProxyModel.ip
+            )
+        )
+
+        res = await self.session.scalars(stmt)
+        return res.all()
+
+    async def update_proxy(self, obj_in: CheckedProxy) -> SceneProxyModel | None:
         """update proxy, if proxy alive count < 1, delete it."""
-        protocol = obj_in.proxy.scheme
-        port = obj_in.proxy.port
-        ip = obj_in.proxy.host
+        protocol = obj_in.url.scheme
+        port = obj_in.url.port
+        ip = obj_in.url.host
         name = obj_in.name
 
         stmt = select(
@@ -48,30 +67,35 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
 
         obj: SceneProxyModel = await self.session.scalar(stmt)
         if obj:
-            if obj.alive_count > 0:
+            # 判断调整后对值
+            alive_count = obj.alive_count + obj_in.get_alive_status()
+            if alive_count > 0:
                 stmt = update(self.model).where(
                     self.model.id == obj.id
                 ).values(
-                    {'alive_count': self.model.alive_count - 1}
+                    {'alive_count': alive_count}
                 ).execution_options(synchronize_session="fetch")
                 await self.session.execute(stmt)
                 return obj
-            else:
-                stmt = delete(self.model).where(
-                    self.model.id == obj.id
-                ).execution_options(synchronize_session="fetch")
-                await self.session.execute(stmt)
+
+            stmt = delete(self.model).where(
+                self.model.id == obj.id
+            ).execution_options(synchronize_session="fetch")
+            await self.session.execute(stmt)
+
         else:
             raise ObjectDoesNotExist()
 
     async def get_proxy_with_region(
             self,
             /,
-            limit: int = 10,
+            limit: int = settings.DEFAULT_PAGE_LIMIT,
             offset: int = 0,
             names: list[str] = None,
-            protocol: str | None = None,
             region: str | None = None,
+            protocol: str | None = None,
+            port: int | None = None,
+            ip: str | None = None,
     ) -> list[SceneProxyModel]:
         """
         get with ip
@@ -80,6 +104,8 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         :param names:    scene names. Eg: ['http'] / ['http', 'https]
         :param protocol:    http/https/socks4/socks5
         :param region:  region code. Eg: CHN/USA
+        :param port:
+        :param ip:
         :return:
 
 
@@ -153,6 +179,12 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         if names:
             condition.append(self.model.name.in_(names))
 
+        proxy_and_condition = []
+        if protocol:
+            proxy_and_condition.append(ProxyModel.protocol == protocol)
+        if port:
+            proxy_and_condition.append(ProxyModel.port == port)
+
         stmt = select(
             self.model
         ).where(
@@ -165,9 +197,9 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
             self.model.alive_count.desc(),
             self.model.update_time.desc(),
         ).join(
-            self.model.proxy.and_(ProxyModel.protocol == protocol) if protocol else self.model.proxy
+            self.model.proxy.and_(*proxy_and_condition) if proxy_and_condition else self.model.proxy
         ).join(
-            ProxyModel.ip
+            ProxyModel.ip.and_(IpModel.value == ip) if ip else ProxyModel.ip
         ).join(
             IpModel.region.and_(RegionModel.code == region) if region else IpModel.region
         ).options(

@@ -45,7 +45,7 @@ async def test_start_urls(mocker, validate_spider_service, sources):
     ]
 )
 @pytest.mark.asyncio
-async def test_get_from_repository(validate_spider_service, init_scene_proxy, sources, expect_value, caplog):
+async def test_get_from_repository(validate_spider_service, init_scene, sources, expect_value, caplog):
     """test get from repo"""
     with caplog.at_level(logging.DEBUG):
         result = await validate_spider_service.get_from_repository(sources)

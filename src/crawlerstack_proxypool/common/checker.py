@@ -8,27 +8,11 @@ from httpx import URL, Response
 from crawlerstack_proxypool.aio_scrapy.downloader import DownloadHandler
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.spider import Spider
-from crawlerstack_proxypool.common.extractor import (BaseExtractor,
-                                                     ExtractorKwargs)
+from crawlerstack_proxypool.common.parser import BaseParser, ParserParams
+from crawlerstack_proxypool.schema import CheckedProxy
 
 
-@dataclasses.dataclass
-class CheckedProxy:
-    """
-    已经检查过的 proxy 对象
-    """
-    url: URL
-    alive: bool
-    alive_status: int = dataclasses.field(default=None)
-
-    def __post_init__(self):
-        if self.alive:
-            self.alive_status = 1
-        else:
-            self.alive_status = -1
-
-
-class BaseChecker(BaseExtractor):
+class BaseChecker(BaseParser):
     """
     抽象校验器
     """
@@ -49,7 +33,7 @@ _CheckerType = TypeVar('_CheckerType', bound=BaseChecker)
 
 
 @dataclasses.dataclass
-class KeywordCheckKwargs(ExtractorKwargs):
+class KeywordCheckParams(ParserParams):
     """
     关键字检查参数
     """
@@ -64,7 +48,7 @@ class KeywordChecker(BaseChecker):
     当抓取目标网站时，可以通过设置该站点必会出现的某个关键词（例如：国内网站底部都会有备案号）用来检查
     请求的结果是否存在关键词。如果存在则说明代理IP请求正常，否则请求异常。
     """
-    KWARGS_KLS = KeywordCheckKwargs
+    KWARGS_KLS = KeywordCheckParams
 
     async def check(self, response: Response) -> CheckedProxy:
         alive = False
@@ -72,7 +56,7 @@ class KeywordChecker(BaseChecker):
             if self.check_keywords(response.text):
                 alive = True
 
-        return CheckedProxy(url=response.request.headers.get('proxy'), alive=alive)
+        return CheckedProxy(name=self.spider.name, url=response.request.headers.get('proxy'), alive=alive)
 
     def check_keywords(self, text: str) -> bool:
         """
@@ -81,18 +65,18 @@ class KeywordChecker(BaseChecker):
         :return:
         """
         checked = []
-        for keyword in self.kwargs.keywords:
+        for keyword in self.params.keywords:
             if keyword in text:
                 checked.append(True)
             else:
                 checked.append(False)
-        if self.kwargs.any:
+        if self.params.any:
             return any(checked)
         return all(checked)
 
 
 @dataclasses.dataclass
-class AnonymousKwargs(ExtractorKwargs):
+class AnonymousParams(ParserParams):
     """
     严格模式。
     """
@@ -113,10 +97,9 @@ class AnonymousChecker(BaseChecker):
         更新本地公网IP的值。
 
     """
-    KWARGS_KLS = AnonymousKwargs
+    KWARGS_KLS = AnonymousParams
 
     def __init__(self, spider: Spider):
-        """"""
         super().__init__(spider)
 
         self._download_handler = DownloadHandler()
@@ -187,4 +170,4 @@ class AnonymousChecker(BaseChecker):
                     alive = True
                 else:
                     alive = True
-        return CheckedProxy(url=proxy, alive=alive)
+        return CheckedProxy(name=self.spider.name, url=proxy, alive=alive)
