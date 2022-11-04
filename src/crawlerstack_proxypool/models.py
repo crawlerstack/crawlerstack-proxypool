@@ -86,7 +86,7 @@ class ProxyModel(BaseModel):
     # TODO protocol port ip 组成唯一索引
     __tablename__ = 'proxy'
 
-    protocol = Column(String(6), comment='代理 IP 的 schema', nullable=False)
+    protocol = Column(String(6), comment='代理 IP 的 protocol', nullable=False)
     port = Column(Integer, nullable=False)
 
     ip_id = Column(Integer, ForeignKey('ip.id', ondelete='CASCADE'), nullable=False)
@@ -114,7 +114,8 @@ class SceneProxyModel(BaseModel):
     name = Column(String(255), nullable=False)
     alive_count = Column(Integer, comment='存活计数。可用加一，不可用减一', nullable=False)
     # elapse_time = Column(Integer, comment="返回响应的消耗的时间，单位 ms")
-    update_time = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment='最近一次更新时间', nullable=False)
+    update_time = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment='最近一次更新时间',
+                         nullable=False)
 
     proxy_id = Column(Integer, ForeignKey('proxy.id', ondelete='CASCADE'), nullable=False)
 

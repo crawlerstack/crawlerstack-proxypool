@@ -5,7 +5,7 @@ import pytest
 from httpx import URL
 from sqlalchemy import func, select
 
-from crawlerstack_proxypool.common.checker import CheckedProxy
+from crawlerstack_proxypool.common.validator import ValidatedProxy
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
 from crawlerstack_proxypool.models import SceneProxyModel
 from crawlerstack_proxypool.schema import SceneIpProxy
@@ -42,7 +42,7 @@ async def test_update_with_pk(init_scene, service_factory, session, pk, name, al
 
 
 @pytest.mark.parametrize(
-    'ip, protocol, port, name, alive, exist, expect_value',
+    'ip, schema, port, dest, alive, exist, total',
     [
         ('192.168.1.2', 'http', 2222, 'foo', True, True, 7),
         ('192.168.1.2', 'http', 2222, 'foo', False, True, 7),
@@ -56,19 +56,21 @@ async def test_update_with_pk(init_scene, service_factory, session, pk, name, al
     ]
 )
 @pytest.mark.asyncio
-async def test_init_proxy(session, init_scene, service_factory, ip, protocol, port, name, alive, exist, expect_value):
+async def test_init_proxy(session, init_scene, service_factory, ip, schema, port, dest, alive, exist, total):
     async with service_factory(SceneProxyService) as service:
-        obj_in = CheckedProxy(
-            url=URL(f'{protocol}://{ip}:{port}'),
-            name=name,
+        obj_in = ValidatedProxy(
+            url=URL(f'{schema}://{ip}:{port}'),
+            name='foo',
             alive=alive,
+            source='source',
+            dest=[dest],
         )
         res = await service.init_proxy(obj_in)
-        assert (res is not None) == exist
+        assert (len(res) != 0) == exist
 
     stmt = select(func.count()).select_from(SceneProxyModel)
     count = await session.scalar(stmt)
-    assert count == expect_value
+    assert count == total
 
 
 @pytest.mark.parametrize(

@@ -16,11 +16,14 @@ async def validate_spider_service(database):
 
 
 @pytest.mark.parametrize(
-    'sources',
-    (None, ['https'])
+    'original, source',
+    [
+        (True, 'http'),
+        (False, 'https')
+    ]
 )
 @pytest.mark.asyncio
-async def test_start_urls(mocker, validate_spider_service, sources):
+async def test_start_urls(mocker, validate_spider_service, original, source):
     """test start urls"""
 
     async def mock_get_from_message():
@@ -30,25 +33,25 @@ async def test_start_urls(mocker, validate_spider_service, sources):
 
     mocker.patch.object(ValidateSpiderService, 'get_from_message', return_value=mock_get_from_message())
     mocker.patch.object(ValidateSpiderService, 'get_from_repository', return_value=['https://example.com'])
-    result = await validate_spider_service.start_urls('https', sources)
-    if sources:
-        assert isinstance(result, Iterable)
-    else:
+    result = await validate_spider_service.get_proxies(original, source)
+    if original:
         assert isinstance(result, AsyncIterable)
+    else:
+        assert isinstance(result, Iterable)
 
 
 @pytest.mark.parametrize(
-    'sources, expect_value',
+    'source, expect_value',
     [
-        (['foo'], 'No proxy in db'),
-        (['https'], 1)
+        ('foo', 'No proxy in db'),
+        ('https', 1)
     ]
 )
 @pytest.mark.asyncio
-async def test_get_from_repository(validate_spider_service, init_scene, sources, expect_value, caplog):
+async def test_get_from_repository(validate_spider_service, init_scene, source, expect_value, caplog):
     """test get from repo"""
     with caplog.at_level(logging.DEBUG):
-        result = await validate_spider_service.get_from_repository(sources)
+        result = await validate_spider_service.get_from_repository(source)
         if isinstance(expect_value, int):
             assert len(result) == 1
         else:

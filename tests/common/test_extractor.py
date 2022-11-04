@@ -2,7 +2,10 @@ import pytest
 from httpx import Response
 from lxml import etree, html
 
-from crawlerstack_proxypool.common.extractor import proxy_check, HtmlExtractor, HtmlExtractorParams
+from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
+                                                     HtmlExtractorParams,
+                                                     JsonExtractor,
+                                                     proxy_check)
 
 
 @pytest.mark.parametrize(
@@ -27,10 +30,11 @@ class TestHtmlExtractor:
         return obj
 
     @pytest.mark.parametrize(
-        'attr,text, value',
+        'attr, text, value',
         [
-            # ({}, '<tr><td>127.0.0.1</td><td>8080</td>', 2),
-            ({'columns_rule': None}, '127.0.0.1:1080', 2),
+            ({}, '<tr><td>127.0.0.1</td><td>8080</td></tr>', 2),
+            ({'port_position': None}, '<tr><td>127.0.0.1:1080</td></tr>', 2),
+            ({}, '<tr><td>127.0.0.1</td></tr>', None),
         ]
     )
     @pytest.mark.asyncio
@@ -38,21 +42,49 @@ class TestHtmlExtractor:
         for k, v in attr.items():
             mocker.patch.object(extractor.params, k, v)
         ele = html.fragment_fromstring(text)
-        res = extractor.parse_row(ele)
+        res = extractor.parse_row(ele.xpath(extractor.params.rows_rule)[0])
         if res is not None:
             assert len(res) == value
         else:
             assert res == value
 
     @pytest.mark.parametrize(
-        'text, value',
+        'attr, text, value',
         [
-            (('<tr><td>ip</td></tr><tr><td>port</td></tr>'
-              '<tr><td>127.0.0.1</td></tr><tr><td>8080</td></tr>'), 0)
+            (
+                    {'row_end': None},
+                    ('<tr><td>ip</td><td>port</td></tr>'
+                     '<tr><td>127.0.0.1</td><td>8080</td></tr>'),
+                    1,
+            ),
+            (
+                    {'row_end': None},
+                    ('<tr><td>ip</td><td>port</td><td>Anonymity</td></tr>'
+                     '<tr><td>127.0.0.1</td><td>8080</td><td>transparent</td></tr>'),
+                    0,
+            ),
         ]
     )
     @pytest.mark.asyncio
-    async def test_parse(self, mocker, extractor, text, value):
-        resp_mocker = mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
+    async def test_parse(self, mocker, extractor, attr, text, value):
+        for k, v in attr.items():
+            mocker.patch.object(extractor.params, k, v)
+        mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
+        mocker.patch.object(extractor, 'parse_row', return_value=[1])
         res = await extractor.parse(Response(status_code=200))
-        print(len(res))
+        assert len(res) == value
+
+
+@pytest.mark.parametrize(
+    'text, value',
+    [
+        ('[{"ip": "127.0.0.1", "port": 22}]', 2),
+        ('[{"ip": "127.0.0.1", "port": 88888}]', 0),
+    ]
+)
+@pytest.mark.asyncio
+async def test_json_extractor(mocker, text, value):
+    extractor = JsonExtractor.from_params(mocker.MagicMock())
+    mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
+    res = await extractor.parse(Response(status_code=200))
+    assert len(res) == value

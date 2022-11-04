@@ -30,42 +30,42 @@ async def init_scene(session, init_proxy):
         objs = result.all()
         proxy_statuses = [
             SceneProxyModel(
-                id=1,   # noqa
+                id=1,  # noqa
                 proxy_id=objs[0].id,
                 name='http',
                 alive_count=5,
                 update_time=datetime.now()
             ),
             SceneProxyModel(
-                id=2,   # noqa
+                id=2,  # noqa
                 proxy_id=objs[0].id,
                 name='https',
                 alive_count=10,
                 update_time=datetime.now()
             ),
             SceneProxyModel(
-                id=3,   # noqa
+                id=3,  # noqa
                 proxy_id=objs[0].id,
                 name='alibaba',
                 alive_count=10,
                 update_time=datetime.now()
             ),
             SceneProxyModel(
-                id=4,   # noqa
+                id=4,  # noqa
                 proxy_id=objs[1].id,
                 name='alibaba',
                 alive_count=1,
                 update_time=datetime.now()
             ),
             SceneProxyModel(
-                id=5,   # noqa
+                id=5,  # noqa
                 proxy_id=objs[2].id,
                 name='alibaba',
                 alive_count=0,
                 update_time=datetime.now()
             ),
             SceneProxyModel(
-                id=6,   # noqa
+                id=6,  # noqa
                 proxy_id=objs[3].id,
                 name='alibaba',
                 alive_count=-1,

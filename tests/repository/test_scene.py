@@ -8,7 +8,7 @@ from sqlalchemy import select
 from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
 from crawlerstack_proxypool.models import IpModel, ProxyModel, SceneProxyModel
 from crawlerstack_proxypool.repositories import SceneProxyRepository
-from crawlerstack_proxypool.schema import CheckedProxy
+from crawlerstack_proxypool.schema import ValidatedProxy, SceneIpProxyStatus
 
 
 @pytest.fixture
@@ -68,8 +68,8 @@ async def test_get(repo, init_scene, names, protocol, region, limit, offset, exp
 @pytest.mark.asyncio
 async def test_update_proxy(session, repo_factory, init_scene, name, protocol, ip, port, expect_value):
     """test update proxy"""
-    obj_in = CheckedProxy(
-        url=URL(f'{protocol}://{ip}:{port}', scheme=protocol),
+    obj_in = SceneIpProxyStatus(
+        url=URL(f'{protocol}://{ip}:{port}'),
         name=name,
         alive=False,
     )
@@ -113,5 +113,5 @@ async def test_update_proxy(session, repo_factory, init_scene, name, protocol, i
 )
 @pytest.mark.asyncio
 async def test_get_by_names(init_scene, repo, names, expect_value):
-    res = await repo.get_by_names(names)
+    res = await repo.get_by_names(*names)
     assert len(res) == expect_value

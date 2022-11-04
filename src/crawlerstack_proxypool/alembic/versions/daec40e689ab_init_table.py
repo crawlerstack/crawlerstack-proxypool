@@ -1,15 +1,16 @@
-"""init_db
+"""init_table
 
-Revision ID: 3a5e3cfca71f
+Revision ID: daec40e689ab
 Revises: 54a2a03ba7a8
-Create Date: 2022-05-27 00:19:01.364864
+Create Date: 2022-11-03 18:37:23.032329
 
 """
 import sqlalchemy as sa
+
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision = '3a5e3cfca71f'
+revision = 'daec40e689ab'
 down_revision = '54a2a03ba7a8'
 branch_labels = None
 depends_on = None
@@ -30,7 +31,7 @@ def upgrade():
     op.create_table('ip',
                     sa.Column('id', sa.Integer(), nullable=False),
                     sa.Column('value', sa.String(length=255), nullable=False, comment='Ip address'),
-                    sa.Column('region_id', sa.Integer(), nullable=False),
+                    sa.Column('region_id', sa.Integer(), nullable=True),
                     sa.ForeignKeyConstraint(['region_id'], ['region.id'], ondelete='CASCADE'),
                     sa.PrimaryKeyConstraint('id')
                     )
@@ -39,7 +40,7 @@ def upgrade():
     op.create_index('value_idx_5571c34a', 'ip', ['value'], unique=False)
     op.create_table('proxy',
                     sa.Column('id', sa.Integer(), nullable=False),
-                    sa.Column('protocol', sa.String(length=6), nullable=False, comment='代理 IP 的 schema'),
+                    sa.Column('protocol', sa.String(length=6), nullable=False, comment='代理 IP 的 protocol'),
                     sa.Column('port', sa.Integer(), nullable=False),
                     sa.Column('ip_id', sa.Integer(), nullable=False),
                     sa.ForeignKeyConstraint(['ip_id'], ['ip.id'], ondelete='CASCADE'),
@@ -59,7 +60,7 @@ def upgrade():
     op.create_index('id_idx_83a604b6', 'scene', ['id'], unique=False)
     op.create_index('name_idx_e755c362', 'scene', ['name'], unique=False)
     op.create_index('proxy_id_idx_30b08a16', 'scene', ['proxy_id'], unique=False)
-
+    # ### end Alembic commands ###
     op.bulk_insert(
         region_table,
         [{'name': 'Afghanistan', 'code': 'AFG', 'numeric': '004'},
@@ -238,7 +239,6 @@ def upgrade():
          {'name': 'Zimbabwe', 'code': 'ZWE', 'numeric': '716'}]
 
     )
-    # ### end Alembic commands ###
 
 
 def downgrade():

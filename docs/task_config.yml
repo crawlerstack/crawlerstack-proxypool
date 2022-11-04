@@ -1,0 +1,41 @@
+fetch_task:
+  - name: foo
+    urls:
+      - https://example.com/1
+      - https://example.com/2
+    dest:
+      - http
+      - https
+    parser:
+      name: json
+      params:
+        ip_key: ip
+        port_key: port
+    trigger:
+
+validate_task:
+  - name: https
+    source: https
+    original: true
+    dest:
+      - https
+      - alibaba
+    parser:
+    trigger:
+
+  - name: http
+    source: http
+    original: true
+    dest:
+      - https
+      - alibaba
+    parser:
+    trigger:
+
+  - name: alibaba
+    source: https
+    original: false
+    dest:
+      - alibaba
+    parser:
+    trigger:

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 
 from crawlerstack_proxypool.config import settings
 from crawlerstack_proxypool.rest_api.utils import service_depend
-from crawlerstack_proxypool.schema import CheckedProxy, SceneIpProxy
+from crawlerstack_proxypool.schema import ValidatedProxy, SceneIpProxy
 from crawlerstack_proxypool.service import SceneProxyService
 
 router = APIRouter()

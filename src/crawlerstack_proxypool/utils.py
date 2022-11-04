@@ -1,7 +1,7 @@
 """
 Utils.
 """
-from pydantic import AnyUrl
+from typing import Literal
 
 
 class SingletonMeta(type):
@@ -31,3 +31,5 @@ def update_db_settings(settings, db_file: str = 'proxypool.db'):
 
 
 ALLOW_PROXY_SCHEMA = ('http', 'https', 'socks5')
+PROXY_SCHEMA_TYPE = Literal['http', 'https', 'socks5']
+

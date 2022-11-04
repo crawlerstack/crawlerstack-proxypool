@@ -1,10 +1,10 @@
 import abc
 import dataclasses
-from typing import Type, TypeVar
+from typing import Generic, Type, TypeVar
 
 from httpx import Response
 
-from crawlerstack_proxypool.aio_scrapy.spider import Spider
+from crawlerstack_proxypool.spiders import Spider
 
 
 @dataclasses.dataclass
@@ -18,12 +18,12 @@ class ParserParams:
 ParserParamsType = TypeVar('ParserParamsType', bound=ParserParams)
 
 
-class BaseParser(metaclass=abc.ABCMeta):
+class BaseParser(Generic[ParserParamsType]):
     """
     抽象 parser 类
     """
     NAME: str
-    PARAMS_KLS: Type[ParserParams] = ParserParams
+    PARAMS_KLS: Type[ParserParamsType] = ParserParams
 
     def __init__(self, spider: Spider):
         self.spider = spider
@@ -47,10 +47,10 @@ class BaseParser(metaclass=abc.ABCMeta):
         :param kwargs:
         :return:
         """
-        self._params = self.PARAMS_KLS(**kwargs)    # noqa
+        self._params = self.PARAMS_KLS(**kwargs)  # noqa
 
     @property
-    def params(self):
+    def params(self) -> ParserParamsType:
         """
         kwargs
         :return:

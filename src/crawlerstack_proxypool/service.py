@@ -12,7 +12,7 @@ from crawlerstack_proxypool.models import SceneProxyModel
 from crawlerstack_proxypool.repositories import (IpRepository, ProxyRepository,
                                                  SceneProxyRepository)
 from crawlerstack_proxypool.repositories.base import BaseRepository
-from crawlerstack_proxypool.schema import CheckedProxy, SceneIpProxy
+from crawlerstack_proxypool.schema import ValidatedProxy, SceneIpProxy, SceneIpProxyStatus
 from crawlerstack_proxypool.signals import (start_fetch_proxy,
                                             start_validate_proxy)
 
@@ -163,10 +163,10 @@ class SceneProxyService(BaseService, CRUDMixin):
             ))
         return value_objects
 
-    async def update_proxy(self, obj_in: CheckedProxy) -> SceneProxyModel | None:
+    async def update_proxy(self, obj_in: SceneIpProxyStatus) -> SceneProxyModel | None:
         return await self.repository.update_proxy(obj_in)
 
-    async def init_proxy(self, proxy: CheckedProxy) -> SceneProxyModel | None:
+    async def init_proxy(self, proxy: ValidatedProxy) -> list[SceneProxyModel]:
         """
         初始化 proxy 。
 
@@ -185,18 +185,22 @@ class SceneProxyService(BaseService, CRUDMixin):
             port=proxy.url.port,
             protocol=proxy.url.scheme,
         )
-        scene_proxy = await self.repository.get_or_create(
-            params={'alive_count': 5},
-            name=proxy.name,
-            proxy_id=proxy_obj.id,
-        )
+        models = []
+        for name in proxy.dest:
+            scene_proxy = await self.repository.get_or_create(
+                params={'alive_count': 5},
+                name=name,
+                proxy_id=proxy_obj.id,
+            )
 
-        alive_count = scene_proxy.alive_count + proxy.get_alive_status()
+            alive_count = scene_proxy.alive_count + proxy.get_alive_status()
 
-        if alive_count > 0:
-            await self.update(scene_proxy.id, alive_count=alive_count)
-            return scene_proxy
-        await self.delete(scene_proxy.id)
+            if alive_count > 0:
+                await self.update(scene_proxy.id, alive_count=alive_count)
+                models.append(scene_proxy)
+            else:
+                await self.delete(scene_proxy.id)
+        return models
 
     async def decrease(self, scene_proxy: SceneIpProxy) -> SceneProxyModel | None:
         """
@@ -207,7 +211,11 @@ class SceneProxyService(BaseService, CRUDMixin):
         :param scene_proxy:
         :return:
         """
-        checked_proxy = CheckedProxy(url=scene_proxy.url, alive=False, name=scene_proxy.name)
+        checked_proxy = SceneIpProxyStatus(
+            url=scene_proxy.url,
+            alive=False,
+            name=scene_proxy.name
+        )
         return await self.update_proxy(checked_proxy)
 
 
@@ -227,32 +235,28 @@ class ValidateSpiderService(SceneProxyService):
         """
         return self._message
 
-    async def start_urls(
+    async def get_proxies(
             self,
-            dest: str,
-            sources: list[str] | None = None
-    ) -> AsyncIterable[URL] | Iterable[URL]:
+            original: bool,
+            source: str
+    ) -> AsyncIterable[URL] | list[URL]:
         """
-        get start_urls.
-
-        if has sources, get urls from db, else get urls from queue.
-        :param dest:
-        :param sources:
+        get_proxies
+        :param original:
+        :param source:
         :return:
         """
-        if sources:
-            # 返回结果，不能返回生成器对象，要不然会超出 session 范围
-            return await self.get_from_repository(sources)
-        # 返回生成器对象
-        return self.get_from_message(dest)
+        if original:
+            return self.get_from_message(source)
+        return await self.get_from_repository(source)
 
-    async def get_from_repository(self, sources: list[str]) -> list[URL]:
+    async def get_from_repository(self, source: str) -> list[URL]:
         """
         get urls from repository
-        :param sources:
+        :param source:
         :return:
         """
-        scene_proxies = await self.repository.get_by_names(sources)
+        scene_proxies = await self.repository.get_by_names(source)
         logger.debug('Get %d proxy from db.', len(scene_proxies))
         result = []
         for scene in scene_proxies:
@@ -264,8 +268,8 @@ class ValidateSpiderService(SceneProxyService):
                 )
             )
         if not result:
-            logger.debug('No proxy in db, to trigger validate proxy task with "%s"', sources)
-            await start_validate_proxy.send(sources=sources)
+            logger.debug('No proxy in db, to trigger validate proxy task with "%s"', source)
+            await start_validate_proxy.send(sources=source)
         return result
 
     async def get_from_message(self, dest: str):

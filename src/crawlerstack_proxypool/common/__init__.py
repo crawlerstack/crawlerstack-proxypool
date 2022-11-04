@@ -2,13 +2,12 @@
 import dataclasses
 import enum
 import functools
-from typing import cast, Literal, Generic
+from typing import Generic, Literal, cast
 
-from crawlerstack_proxypool.common.checker import (AnonymousChecker,
-                                                   KeywordChecker, BaseChecker)
-from crawlerstack_proxypool.common.extractor import (
-    HtmlExtractor,
-    JsonExtractor, )
+from crawlerstack_proxypool.common.validator import (AnonymousValidator,
+                                                     BaseValidator, KeywordValidator)
+from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
+                                                     JsonExtractor)
 from crawlerstack_proxypool.common.parser import BaseParser, ParserType
 
 
@@ -54,13 +53,13 @@ class ExtractorFactory(BaseParserFactory[BaseParser]):
     }
 
 
-class CheckerFactory(BaseParserFactory[BaseChecker]):
+class CheckerFactory(BaseParserFactory[BaseValidator]):
     """
     校验器代理
     """
     parser_mapping = {
-        'keyword': KeywordChecker,
-        'anonymous': AnonymousChecker,
+        'keyword': KeywordValidator,
+        'anonymous': AnonymousValidator,
     }
 
 
@@ -74,7 +73,8 @@ _ParserFactoryNameType = Literal[ParserFactoryName.checker, ParserFactoryName.ex
 
 class ParserFactoryProduce:
     factory = {
-        ParserFactoryName.extractor: ExtractorFactory
+        ParserFactoryName.extractor: ExtractorFactory,
+        ParserFactoryName.checker: CheckerFactory,
     }
 
     def get_factory(self, name: _ParserFactoryNameType):

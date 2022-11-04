@@ -9,7 +9,6 @@ from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.exceptions import CrawlerStackProxyPoolError
 from crawlerstack_proxypool.log import configure_logging
 from crawlerstack_proxypool.rest_api import RestAPI
-from crawlerstack_proxypool.task import TaskManager
 
 HANDLED_SIGNALS = (
     system_signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -37,8 +36,6 @@ class ProxyPool:
             port=self._settings.PORT,
         )
 
-        self.task_manager = TaskManager()
-
         self.should_exit = False
         self.force_exit = True
 
@@ -59,10 +56,6 @@ class ProxyPool:
 
     async def schedule(self):
         """调度任务"""
-
-        self.task_manager.load_task()
-        self.task_manager.start()
-
         self.rest_api.init()
 
     async def start(self):
@@ -85,7 +78,6 @@ class ProxyPool:
     async def stop(self):
         """Stop spiderkeeper"""
         logger.debug('Stop proxypool server.')
-        self.task_manager.stop()
         await self.rest_api.stop()
         await self.db.close()
 

@@ -9,7 +9,7 @@ from crawlerstack_proxypool.exceptions import ObjectDoesNotExist
 from crawlerstack_proxypool.models import (IpModel, ProxyModel, RegionModel,
                                            SceneProxyModel)
 from crawlerstack_proxypool.repositories.base import BaseRepository
-from crawlerstack_proxypool.schema import CheckedProxy
+from crawlerstack_proxypool.schema import SceneIpProxyStatus
 
 
 class SceneProxyRepository(BaseRepository[SceneProxyModel]):
@@ -22,8 +22,10 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         """model"""
         return SceneProxyModel
 
-    async def get_by_names(self, names) -> list[SceneProxyModel]:
+    async def get_by_names(self, name, *names) -> list[SceneProxyModel]:
         """get by names"""
+        names = list(names)
+        names.append(name)
         stmt = select(
             self.model
         ).where(
@@ -39,7 +41,7 @@ class SceneProxyRepository(BaseRepository[SceneProxyModel]):
         res = await self.session.scalars(stmt)
         return res.all()
 
-    async def update_proxy(self, obj_in: CheckedProxy) -> SceneProxyModel | None:
+    async def update_proxy(self, obj_in: SceneIpProxyStatus) -> SceneProxyModel | None:
         """update proxy, if proxy alive count < 1, delete it."""
         protocol = obj_in.url.scheme
         port = obj_in.url.port
