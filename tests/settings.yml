@@ -1,0 +1,3 @@
+show_sql: true
+show_test_sql: false
+database:

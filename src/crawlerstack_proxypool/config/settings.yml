@@ -1,85 +1,33 @@
----
-# Yaml   ---   Python type
-# null   ---   null
-# True   ---   true
-# False  ---   false
-# \r     ---   "\r". not \r or '\r', it will escape to \\r
+show_sql: false
 
+# Enable verbose mode to show more log detail message
+# Default is false
+verbose: false
+# Enable debug mode to show debug log.
+# Default is false, if enable, will show debug log.
+debug: false
 
-### Server Config
-HOST: 127.0.0.1
-PORT: 8080
-VERBOSE: true
-DEBUG: true
-LOGLEVEL: DEBUG
+# LOG
+# Config log level, default is WARNING, if enable `debug` mode,
+# log level is debug
+loglevel: warning
+# Config log path.
+# default project path
+logpath: logs
 
-### Scrapy Config
-BOT_NAME: 'crawler'
-SPIDER_MODULES:
-  - crawlerstack_proxypool.spiders
-NEWSPIDER_MODULE: crawlerstack_proxypool
-USER_AGENT: Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36
-ROBOTSTXT_OBEY: False
-CONCURRENT_ITEMS: 100 # Default 100
-CONCURRENT_REQUESTS: 16 # Default 16.  Downloader maximum concurrency number
-DOWNLOAD_DELAY: 3 # Default 0. The interval for one domain(or IP).
-RANDOMIZE_DOWNLOAD_DELAY: true  # Default True，Random delay based `DOWNLOAD_DELAY`. It's mean `DOWNLOAD_DELAY * 1` < `x` `DOWNLOAD_DELAY * 1.5`。If it is `False`, will use `DOWNLOAD_DELAY`.
-CONCURRENT_REQUESTS_PER_DOMAIN: 8  # Default 8
-CONCURRENT_REQUESTS_PER_IP: 0  # Default 0. If not 0, `CONCURRENT_REQUESTS_PER_DOMAIN` is invalid, mean only limit IP, not limit domain.
-COOKIES_ENABLED: False  # Default True
-DOWNLOAD_TIMEOUT: 30  # Default 180
-RETRY_ENABLED: True # Default True
-RETRY_TIMES: 2  # Default 2
-REACTOR_THREADPOOL_MAXSIZE: 40
-DEFAULT_REQUEST_HEADERS:
-  Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8
-  Accept-Language: zh-CN,zh;q=0.9,en;q=0.8
-SPIDER_MIDDLEWARES:
-  scrapy_splash.SplashDeduplicateArgsMiddleware: 100
-DOWNLOADER_MIDDLEWARES:
-  proxypool.core.middlewares.UserAgentMiddleware: 499
-  proxypool.core.middlewares.ProxyMiddleware: 720
-  scrapy_splash.SplashCookiesMiddleware: 723
-  scrapy_splash.SplashMiddleware: 725
-  scrapy.downloadermiddlewares.httpcompression.HttpCompressionMiddleware: 810
-  proxypool.core.middlewares.RequestProfileMiddleware: 901
-EXTENSIONS:
-  scrapy.extensions.telnet.TelnetConsole: null
-ITEM_PIPELINES:
-  proxypool.core.pipelines.ProxyIPPipeline: 100
-  proxypool.core.pipelines.ScenePipeline: 100
-DUPEFILTER_CLASS: scrapy.dupefilters.BaseDupeFilter # Do not enable DupeFilter
-HTTPCACHE_ENABLED: False
-HTTPCACHE_EXPIRATION_SECS: 0
-HTTPCACHE_DIR: httpcache
-HTTPCACHE_IGNORE_HTTP_CODES: []
-HTTPCACHE_STORAGE: scrapy.extensions.httpcache.FilesystemCacheStorage
-# scrapy log config
-#  LOG_ENABLED: True
-#  LOG_ENCODING: utf-8
-#  LOG_FORMATTER: scrapy.logformatter.LogFormatter
-#  LOG_FORMAT: '%(asctime)s [%(name)s] %(levelname)s: %(message)s'
-#  LOG_DATEFORMAT: '%Y-%m-%d %H:%M:%S'
-#  LOG_STDOUT: True
-#  LOG_LEVEL: DEBUG
-LOG_SHORT_NAMES: False
+# Server
 
-## redis config
-REDIS_BATCH_SIZE: 10  # default: 10 # 每次从 Redis 中获取多少数据。此数据会影响并发即使 Scrapy 的并发参数设置的很大也不行。
-#REDIS_HOST: ''
-#REDIS_PORT: ''
-REDIS_URL: 'redis://127.0.0.1:6379/2'
+host: 127.0.0.1
+port: 8000
 
+default_page_limit: 20
 
-## spider proxy config
-GFW_PROXY: http://127.0.0.1:1081  # GFW proxy. If not proxy, it will also to used randomly, to avoid ban the publish IP.
-SPLASH_URL: http://127.0.0.1:8050 # Splash
-MIN_SCORE: 3 # int  API 服务获取的最小 score 分值
-CACHE_IP_SIZE: 100 # int  AIP  服务中缓存代理的数量。这个值不宜太大，也不宜太小。太大会因为时间长导致缓存中的 IP 无效，太小的的话系统会频换刷新缓冲池，增加系统负担
-DEFAULT_TIME_WINDOW: 300  # 检测加载任务在一个时间窗口的运行次数。会影响任务配置中的 interval
-SCENE_TIME_WINDOW: 120
-PROXYIP_TIME_WINDOW: 300
+# Database config.
+# Default is sqlite+aiosqlite:////<project_path>/.local/proxypool.db
+#database: sqlite+aiosqlite:////tmp/crawlerstack_proxypool
+#database: mysql+aiomysql://user:password@host:port/dbname
+#database: postgresql+asyncpg://user:password@host:port/dbname
+database:
 
-### Task config
-SCENE_TASK: []
-SPIDER_TASK: []
+redis_url: redis://localhost
+

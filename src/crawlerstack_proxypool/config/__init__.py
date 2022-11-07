@@ -1,34 +1,45 @@
-"""Init global Configuration"""
+"""
+Configuration center.
+Use https://www.dynaconf.com/
+"""""
 import os
 import sys
 from pathlib import Path
 
 from dynaconf import Dynaconf
 
-# https://www.dynaconf.com/
+from crawlerstack_proxypool.utils import update_db_settings
 
 _base_dir = Path(__file__).parent.parent
+_local_path = _base_dir / '.local'
 
 _settings_files = [
     # All config file will merge.
-    Path(__file__).parent.joinpath('settings.yml'),  # Load default config.
-    # Load task if file exist.
-    Path(__file__).parent.joinpath('tasks', 'spider_task.yml'),
-    Path(__file__).parent.joinpath('tasks', 'scene_task.yml'),
+    Path(__file__).parent / 'settings.yml',  # Load default config.
 ]
 
+# User configuration. It will be created automatically by the pip installer .
 _external_files = [
-    # Why not use Path ?
-    # https://github.com/rochacbruno/dynaconf/issues/494
-    os.path.join(sys.prefix, 'etc', 'crawlerstack', 'proxypool', 'settings.yml')
+    Path(sys.prefix, 'etc', 'CREWLERSTACK', 'proxypool', 'settings.yml')
 ]
 
 settings = Dynaconf(
-    # You can set `CRAWLERSTACK_PROXYPOOL_FOO=ABC`, and access by `settings.FOO`.
-    envvar_prefix="CRAWLERSTACK_PROXYPOOL",
-    settings_files=_settings_files,
-    load_dotenv=True,
-    lowercase_read=False,  # Disable lowercase， can't access name by `settings.name`.
-    includes=_external_files,  # External customs config, will override `settings_files`.
-    base_dir=_base_dir
+    # Set env `CREWLERSTACK_PROXYPOOL='bar'`，use `settings.FOO` .
+    envvar_prefix='CREWLERSTACK_PROXYPOOL',
+    settings_files=_settings_files,  # load user configuration.
+    # environments=True,  # Enable multi-level configuration，eg: default, development, production
+    load_dotenv=True,  # Enable load .env
+    # env_switcher='CREWLERSTACK_PROXYPOOL_ENV',
+    lowercase_read=False,  # If true, can't use `settings.foo.py`, but can only use `settings.FOO`
+    includes=_external_files,  # Customs settings.
+    basedir=_base_dir,  # `settings.BASEDIR`
+    localpath=_local_path,
 )
+
+os.makedirs(_local_path, exist_ok=True)
+
+# 更新配置中数据库默认配置，默认使用 sqlite，不推荐在开发环境或生产环境中使用。
+update_db_settings(settings)
+
+if not os.path.isabs(settings.LOGPATH):
+    settings.set('LOGPATH', _local_path / settings.LOGPATH)

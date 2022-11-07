@@ -1,0 +1,44 @@
+site_name: ProxyPool
+
+theme:
+  name: material
+  language: zh
+  features:
+    - search.highlight
+    - navigation.sections
+    - navigation.top
+    - navigation.tabs
+  palette:  # 主题模式切换。
+    - media: "(prefers-color-scheme: light)"  # 跟随系统主题模式
+      scheme: default
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/weather-night
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+markdown_extensions:
+  - footnotes
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tabbed
+  - attr_list
+  - md_in_html
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+repo_url: https://github.com/crawlerstack/crawlerstack-proxypool
+repo_name: crawlerstack/crawlerstack-proxypool
+site_url: https://github.com/crawlerstack/crawlerstack-proxypool
+
+plugins:
+  - search
+
+nav:
+- 介绍: index.md
