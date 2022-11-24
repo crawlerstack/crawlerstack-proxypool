@@ -1,3 +1,4 @@
+"""test schedule"""
 import pytest
 
 from crawlerstack_proxypool.tasks.scheduler import Scheduler
@@ -5,10 +6,12 @@ from crawlerstack_proxypool.tasks.scheduler import Scheduler
 
 @pytest.fixture
 def scheduler():
+    """scheduler"""
     yield Scheduler()
 
 
 async def test_load_fetch_task(scheduler):
+    """test load fetch task"""
     config = [
         {
             'name': 'foo',
@@ -36,6 +39,7 @@ async def test_load_fetch_task(scheduler):
     [True, False]
 )
 async def test_load_validate_task(scheduler, original):
+    """test load validate task"""
     config = [
         {
             'name': 'foo',

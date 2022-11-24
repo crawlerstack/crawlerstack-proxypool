@@ -1,9 +1,9 @@
+"""test extractor"""
 import pytest
 from httpx import Response
-from lxml import etree, html
+from lxml import html
 
 from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
-                                                     HtmlExtractorParams,
                                                      JsonExtractor,
                                                      proxy_check)
 
@@ -18,14 +18,17 @@ from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
     ]
 )
 def test_proxy_check(ip, port, value):
+    """test proxy check"""
     res = proxy_check(ip, port)
     assert res == value
 
 
 class TestHtmlExtractor:
+    """test html extractor"""
 
     @pytest.fixture()
     def extractor(self, mocker):
+        """extractor"""
         obj = HtmlExtractor.from_params(mocker.MagicMock())
         return obj
 
@@ -37,8 +40,8 @@ class TestHtmlExtractor:
             ({}, '<tr><td>127.0.0.1</td></tr>', None),
         ]
     )
-    @pytest.mark.asyncio
     def test_parse_row(self, mocker, extractor, attr, text, value):
+        """test parse row"""
         for k, v in attr.items():
             mocker.patch.object(extractor.params, k, v)
         ele = html.fragment_fromstring(text)
@@ -67,6 +70,7 @@ class TestHtmlExtractor:
     )
     @pytest.mark.asyncio
     async def test_parse(self, mocker, extractor, attr, text, value):
+        """test parse"""
         for k, v in attr.items():
             mocker.patch.object(extractor.params, k, v)
         mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
@@ -84,6 +88,7 @@ class TestHtmlExtractor:
 )
 @pytest.mark.asyncio
 async def test_json_extractor(mocker, text, value):
+    """test json extractor"""
     extractor = JsonExtractor.from_params(mocker.MagicMock())
     mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
     res = await extractor.parse(Response(status_code=200))

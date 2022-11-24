@@ -11,6 +11,7 @@ from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
 from crawlerstack_proxypool.aio_scrapy.downloader import Downloader
 from crawlerstack_proxypool.aio_scrapy.engine import ExecuteEngine
 from crawlerstack_proxypool.aio_scrapy.scraper import Scraper
+from crawlerstack_proxypool.aio_scrapy.settings import Settings
 from crawlerstack_proxypool.aio_scrapy.spider import Spider
 
 
@@ -22,9 +23,15 @@ class Foo(Spider):
 
 
 @pytest.fixture()
-def foo_spider():
+def spider_settings():
+    """spider settings"""
+    return Settings()
+
+
+@pytest.fixture()
+def foo_spider(http_url, spider_settings):
     """foo spider fixture"""
-    yield Foo(name='test', start_urls=['https://httpbin.iclouds.work/ip'])
+    yield Foo(name='test', start_urls=[http_url], settings=spider_settings)
 
 
 @pytest.fixture()
@@ -63,8 +70,8 @@ async def test_loop_call(event_loop, mocker, execute_engine, called, closed):
 
     def callback():
         """callback"""
-        if not execute_engine._closed.done():   # pylint: disable=protected-access
-            execute_engine._closed.set_result('Closed.')    # pylint: disable=protected-access
+        if not execute_engine._closed.done():  # pylint: disable=protected-access
+            execute_engine._closed.set_result('Closed.')  # pylint: disable=protected-access
 
     event_loop.call_later(0.001, callback)
     if closed:
@@ -88,13 +95,14 @@ async def test_next_request(mocker, execute_engine, start_urls, should_pass, cra
     """test next request"""
 
     async def mock_start_requests():
+        """mock start requests"""
         for i in start_urls:
             yield i
 
     mocker.patch.object(ExecuteEngine, 'spider_idle')
     mocker.patch.object(ExecuteEngine, 'should_pass', return_value=should_pass)
     crawl = mocker.patch.object(ExecuteEngine, 'crawl')
-    execute_engine._start_requests = start_urls if start_urls is None else mock_start_requests()    # pylint: disable=protected-access
+    execute_engine._start_requests = start_urls if start_urls is None else mock_start_requests()  # pylint: disable=protected-access
     await execute_engine.next_request()
     assert crawl.called == crawl_called
 
@@ -109,10 +117,10 @@ async def test_schedule(mocker, engine_with_spider):
     mocker.patch.object(Scraper, 'enqueue', return_value=result)
 
     request = mocker.MagicMock()
-    await engine_with_spider._processing_requests_queue.put(request)    # pylint: disable=protected-access
+    await engine_with_spider._processing_requests_queue.put(request)  # pylint: disable=protected-access
 
     await engine_with_spider.schedule(request)
-    assert engine_with_spider._processing_requests_queue.empty()    # pylint: disable=protected-access
+    assert engine_with_spider._processing_requests_queue.empty()  # pylint: disable=protected-access
 
 
 @pytest.mark.asyncio

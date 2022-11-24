@@ -1,4 +1,5 @@
 """conf test"""
+# pylint: disable=duplicate-code
 from datetime import datetime
 
 import pytest

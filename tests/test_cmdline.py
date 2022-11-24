@@ -2,7 +2,7 @@
 import pytest
 
 from crawlerstack_proxypool import __version__
-from crawlerstack_proxypool.main import main
+from crawlerstack_proxypool.cmdline import main
 
 
 @pytest.mark.parametrize(
