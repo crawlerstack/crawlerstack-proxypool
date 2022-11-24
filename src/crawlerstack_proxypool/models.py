@@ -1,8 +1,9 @@
+"""model"""
 from datetime import datetime
 from typing import TypeVar
 
 from sqlalchemy import Column, DateTime, ForeignKey, Index, Integer, String
-from sqlalchemy.orm import declarative_base, declared_attr, relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 
 class CustomsBase:
