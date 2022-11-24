@@ -1,3 +1,4 @@
+"""validator"""
 import asyncio
 import dataclasses
 import random
@@ -31,6 +32,7 @@ class BaseValidator(BaseParser):
         raise NotImplementedError()
 
     def validated_proxy(self, url: URL, alive: bool):
+        """validate proxy"""
         return ValidatedProxy(
             url=url,
             alive=alive,
@@ -40,7 +42,7 @@ class BaseValidator(BaseParser):
         )
 
 
-_ValidatorType = TypeVar('_ValidatorType', bound=BaseValidator)
+_ValidatorType = TypeVar('_ValidatorType', bound=BaseValidator)  # pylint: disable=invalid-name
 
 
 @dataclasses.dataclass
@@ -74,7 +76,7 @@ call_args    """
         else:
             alive = all(checked)
 
-        return self.validated_proxy(url=response.request.headers.get('proxy'), alive=alive)
+        return self.validated_proxy(url=response.request.extensions.get('proxy'), alive=alive)
 
 
 @dataclasses.dataclass
@@ -101,7 +103,7 @@ class AnonymousValidator(BaseValidator):
     def __init__(self, spider: Spider):
         super().__init__(spider)
 
-        self._download_handler = DownloadHandler()
+        self._download_handler = DownloadHandler(spider.settings)
         self._internet_ip: str = ''
         self._refresh_ip_task: asyncio.Task | None = None
         self._running = False
@@ -147,7 +149,7 @@ class AnonymousValidator(BaseValidator):
             await self.update_internet_ip()
             delay = random.randint(10, 20)
             trigger_time = datetime.now() + timedelta(seconds=delay)
-            time_str = trigger_time.strftime('%Y-%m-%sT%H:%M:%S.%f%z')
+            time_str = trigger_time.strftime('%Y-%m-%dT%H:%M:%S.%f%z')
             self.spider.logger.debug(f'Next refresh internet ip: {time_str}.')
             await asyncio.sleep(delay)
 
