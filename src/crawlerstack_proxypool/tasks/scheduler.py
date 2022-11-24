@@ -1,3 +1,4 @@
+"""scheduler"""
 import logging
 from datetime import datetime, timedelta, tzinfo
 from enum import Enum
@@ -21,17 +22,20 @@ logger = logging.getLogger(__name__)
 
 
 class ParserConfig(BaseModel):
+    """ParserConfig"""
     name: str
     params: dict = {}
 
 
 class TriggerName(Enum):
+    """TriggerName"""
     cron = 'cron'
     interval = 'interval'
     date = 'date'
 
 
 class IntervalTriggerConfig(BaseModel):
+    """IntervalTriggerConfig"""
     weeks: int = 0
     days: int = 0
     hours: int = 0
@@ -43,10 +47,12 @@ class IntervalTriggerConfig(BaseModel):
     jitter: int | None = None
 
     class Config:
+        """Config"""
         arbitrary_types_allowed = True
 
 
 class CronTriggerConfig(BaseModel):
+    """CronTriggerConfig"""
     year: int | None = None
     month: int = None
     day: int = None
@@ -61,26 +67,31 @@ class CronTriggerConfig(BaseModel):
     jitter: int | None = None
 
     class Config:
+        """Config"""
         arbitrary_types_allowed = True
 
 
 class DateTriggerConfig(BaseModel):
+    """DateTriggerConfig"""
     run_date: datetime | str = None
     timezone: tzinfo | str = None
 
     class Config:
+        """Config"""
         arbitrary_types_allowed = True
 
 
-TRIGGER_TYPE = Literal['cron', 'interval', 'date']
+TRIGGER_TYPE = Literal['cron', 'interval', 'date']  # pylint: disable=invalid-name
 
 
 class TriggerConfig(BaseModel):
+    """TriggerConfig"""
     name: TRIGGER_TYPE
     params: dict
 
     @pydantic.validator('params')
-    def params_check(cls, v, values) -> dict:  # noqa
+    def params_check(cls, v, values) -> dict:  # pylint: disable=no-self-argument
+        """params check"""
         name = values.get('name')
         match name:
             case TriggerName.interval.value:
@@ -96,6 +107,7 @@ class TriggerConfig(BaseModel):
 
 
 class FetchTaskConfig(BaseModel):
+    """FetchTaskConfig"""
     name: str
     urls: list[str]
     dest: list[str]
@@ -104,6 +116,7 @@ class FetchTaskConfig(BaseModel):
 
 
 class ValidateTaskConfig(BaseModel):
+    """ValidateTaskConfig"""
     name: str
     urls: list[str]
     original: bool
@@ -173,7 +186,7 @@ class Scheduler:
                 ),
                 dest=config.dest
             )
-            logger.info(f'Loading spider task <{config.name}> . Task config: {config.json()}')
+            logger.info('Loading spider task <%s> . Task config: %s', config.name, config.json())
 
             next_run_time = datetime.now() + timedelta(seconds=self.FETCH_TASK_NEXT_RUN_OFFSET)
             task = self.apscheduler.add_job(
@@ -184,8 +197,8 @@ class Scheduler:
                 **config.trigger.params,
             )
             logger.info(
-                f'Loaded spider task <{config.name} to scheduler. '
-                f'Task id: {task.id}, next run time {next_run_time}>'
+                'Loaded spider task <%s to scheduler. Task id: %s, next run time %s>',
+                config.name, task.id, next_run_time
             )
             self.fetch_jobs.append((config.name, task))
 
@@ -206,7 +219,7 @@ class Scheduler:
                     **config.parser.params
                 ),
             )
-            logger.info(f'Loading validate task <{config.name}> . Task config: {config.json()}')
+            logger.info('Loading validate task <%s> . Task config: %s', config.name, config.json())
             next_run_time = datetime.now() + timedelta(seconds=self.VALIDATE_TASK_NEXT_RUN_OFFSET)
             task = self.apscheduler.add_job(
                 func=spider.start,
@@ -216,8 +229,8 @@ class Scheduler:
                 **config.trigger.params,
             )
             logger.info(
-                f'Loaded validate task <{config.name} to scheduler. '
-                f'Task id: {task.id}, next run time {next_run_time}>'
+                'Loaded validate task <%s to scheduler. Task id: %s, next run time %s>',
+                config.name, task.id, next_run_time
             )
             if config.original:
                 self.validate_fetch_jobs.append((config.name, task))

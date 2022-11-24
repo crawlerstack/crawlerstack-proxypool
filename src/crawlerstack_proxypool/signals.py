@@ -1,3 +1,4 @@
+"""signals"""
 from aio_pydispatch import Signal
 
 start_fetch_proxy = Signal()

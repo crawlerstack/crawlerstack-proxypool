@@ -1,3 +1,4 @@
+"""fetcher"""
 import dataclasses
 from typing import Type
 

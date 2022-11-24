@@ -30,6 +30,7 @@ class RestAPI:
 
     @property
     def app(self):
+        """app"""
         return self._app
 
     def init(self):

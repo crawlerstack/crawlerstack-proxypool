@@ -1,13 +1,13 @@
 import asyncio
 
-from crawlerstack_proxypool.config import settings
-from crawlerstack_proxypool.models import BaseModel
+from alembic import context
 from sqlalchemy import engine_from_config, pool
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from alembic import context
+from crawlerstack_proxypool.config import settings
+from crawlerstack_proxypool.models import BaseModel
 
 config = context.config
 

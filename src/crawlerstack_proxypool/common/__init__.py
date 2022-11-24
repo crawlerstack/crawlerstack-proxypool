@@ -1,14 +1,14 @@
 """common"""
-import dataclasses
 import enum
 import functools
 from typing import Generic, Literal, cast
 
-from crawlerstack_proxypool.common.validator import (AnonymousValidator,
-                                                     BaseValidator, KeywordValidator)
 from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
                                                      JsonExtractor)
 from crawlerstack_proxypool.common.parser import BaseParser, ParserType
+from crawlerstack_proxypool.common.validator import (AnonymousValidator,
+                                                     BaseValidator,
+                                                     KeywordValidator)
 
 
 class BaseParserFactory(Generic[ParserType]):
@@ -19,7 +19,7 @@ class BaseParserFactory(Generic[ParserType]):
     parser_mapping: dict[str, ParserType] = {}
 
     def __init__(self):
-        _mapping = self._init_parser_mapping()
+        _mapping = self._init_parser_mapping()  # pylint: disable=assignment-from-no-return
         if _mapping:
             self.parser_mapping.update(_mapping)
 
@@ -64,20 +64,23 @@ class CheckerFactory(BaseParserFactory[BaseValidator]):
 
 
 class ParserFactoryName(enum.Enum):
-    checker = 'checker'
-    extractor = 'extractor'
+    """Parser Factory Name"""
+    checker = 'checker'  # pylint: disable=invalid-name
+    extractor = 'extractor'  # pylint: disable=invalid-name
 
 
 _ParserFactoryNameType = Literal[ParserFactoryName.checker, ParserFactoryName.extractor]
 
 
 class ParserFactoryProduce:
+    """Parser Factory Produce"""
     factory = {
         ParserFactoryName.extractor: ExtractorFactory,
         ParserFactoryName.checker: CheckerFactory,
     }
 
     def get_factory(self, name: _ParserFactoryNameType):
+        """get factory"""
         kls = self.factory.get(name)
         if kls:
             return kls()

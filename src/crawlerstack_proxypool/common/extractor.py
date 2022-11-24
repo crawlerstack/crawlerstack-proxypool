@@ -6,13 +6,14 @@ import ipaddress
 import json
 import logging
 from abc import ABC
-from typing import Type, Generic
+from typing import Generic, Type
 
-from httpx import Response, URL
+from httpx import URL, Response
 from lxml import etree
 from lxml.etree import Element
 
-from crawlerstack_proxypool.common.parser import BaseParser, ParserParams, ParserParamsType
+from crawlerstack_proxypool.common.parser import (BaseParser, ParserParams,
+                                                  ParserParamsType)
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ class BaseExtractor(BaseParser, Generic[ParserParamsType], ABC):
     ALLOW_SCHEMA = ['http', 'https']
 
     def build_proxies(self, ip: str, port: int) -> list[URL]:
+        """build proxies"""
         proxies = []
         if proxy_check(ip, port):
             for schema in self.ALLOW_SCHEMA:
@@ -87,7 +89,7 @@ class HtmlExtractor(BaseExtractor[HtmlExtractorParams]):
         rows = html.xpath(self._params.rows_rule)[self._params.row_start:self._params.row_end]
 
         for row in rows:
-            row_html = etree.tostring(row).decode()
+            row_html = etree.tostring(row).decode()  # pylint: disable=
             if '透明' in row_html or 'transparent' in row_html.lower():
                 continue
             items.extend(self.parse_row(row=row))
