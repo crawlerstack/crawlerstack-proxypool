@@ -91,6 +91,7 @@ class ValidateSpider(Spider):
         req = RequestProxy(
             method='GET',
             url=self.random_check_url(),
-            proxy=url
+            proxy=url,
+            verify=False
         )
         return req
