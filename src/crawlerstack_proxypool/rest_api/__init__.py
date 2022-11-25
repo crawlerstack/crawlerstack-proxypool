@@ -25,7 +25,7 @@ class RestAPI:
             db=self.db
         )
 
-        uvicorn_config = Config(self._app)
+        uvicorn_config = Config(self._app, host=self.host, port=self.port)
         self._uvicorn_server = Server(uvicorn_config)
 
     @property
