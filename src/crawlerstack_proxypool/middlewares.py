@@ -13,6 +13,9 @@ class ExceptionMiddleware(DownloadMiddleware):
     async def process_exception(self, exception, request, spider):
         """process exception"""
         if isinstance(exception, httpx.ConnectError):
-            logging.warning('httpx.ConnectError, url: %s, proxy: %s',request.url, request.proxy)
+            logging.warning('httpx.ConnectError, url: %s, proxy: %s', request.url, request.proxy)
+            return
+        elif isinstance(exception, httpx.ProxyError):
+            logging.warning('httpx.ProxyError, url: %s, proxy: %s', request.url, request.proxy)
             return
         return exception
