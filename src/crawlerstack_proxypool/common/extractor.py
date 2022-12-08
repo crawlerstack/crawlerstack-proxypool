@@ -6,7 +6,7 @@ import ipaddress
 import json
 import logging
 from abc import ABC
-from typing import Generic, Type
+from typing import Generic, List, Type
 
 from httpx import URL, Response
 from lxml import etree
@@ -130,6 +130,7 @@ class JsonExtractorParams(ParserParams):
     _ = dataclasses.KW_ONLY
     ip_key: str = 'ip'
     port_key: str = 'port'
+    data_rule: str = None
 
 
 class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
@@ -143,7 +144,7 @@ class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
         :param response: scrapy response
         :return: ip infos
         """
-        infos = json.loads(response.text)
+        infos = self.parse_json_data(json.loads(response.text))
         items = []
         for info in infos:
             ip = info.get(self._params.ip_key)
@@ -153,3 +154,13 @@ class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
             items.extend(self.build_proxies(ip, port))
 
         return items
+
+    def parse_json_data(self, infos: dict) -> List[dict]:
+        """parse_data"""
+        if self._params.data_rule:
+            for i in self._params.data_rule.split('.'):
+                if i.isdigit():
+                    infos = infos[int(i)]
+                else:
+                    infos = infos.get(i)
+        return infos
