@@ -15,7 +15,8 @@ class ExceptionMiddleware(DownloadMiddleware):
         'httpx.ConnectTimeout': httpx.ConnectTimeout,
         'httpx.ReadTimeout': httpx.ReadTimeout,
         'httpx.RemoteProtocolError': httpx.RemoteProtocolError,
-        'httpx.ReadError': httpx.ReadError
+        'httpx.ReadError': httpx.ReadError,
+        'httpx.ProxyError': httpx.ProxyError
     }
 
     async def process_exception(self, exception, request, spider):

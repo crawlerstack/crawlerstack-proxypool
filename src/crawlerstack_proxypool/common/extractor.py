@@ -130,7 +130,7 @@ class JsonExtractorParams(ParserParams):
     _ = dataclasses.KW_ONLY
     ip_key: str = 'ip'
     port_key: str = 'port'
-    data_rule: str = None
+    data_rule: str = ''
 
 
 class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
@@ -144,7 +144,7 @@ class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
         :param response: scrapy response
         :return: ip infos
         """
-        infos = self.parse_json_data(json.loads(response.text))
+        infos = self.parse_infos(json.loads(response.text))
         items = []
         for info in infos:
             ip = info.get(self._params.ip_key)
@@ -155,12 +155,67 @@ class JsonExtractor(BaseExtractor):  # pylint: disable=too-few-public-methods
 
         return items
 
-    def parse_json_data(self, infos: dict) -> List[dict]:
-        """parse_data"""
-        if self._params.data_rule:
+    def parse_infos(self, infos) -> List[dict]:
+        """
+        解析json数据
+
+        Example::
+        data_rule: data.*data
+        infos:
+        {
+            data:[
+                {data:[{ip:1,port:1},{ip:1,port:1}]},
+                {data:[{ip:1,port:1},{ip:1,port:1}]},
+                {data:[{ip:1,port:1},{ip:1,port:1}]}
+                ]
+        }
+        :param infos:
+        :return:
+        """
+        if self._params.data_rule != '':
             for i in self._params.data_rule.split('.'):
+                if '*' in i:
+                    infos = self.parse_nested_data(infos, i)
                 if i.isdigit():
-                    infos = infos[int(i)]
+                    infos = self.parse_list(i, infos)
                 else:
-                    infos = infos.get(i)
+                    infos = self.parse_dict(i, infos)
         return infos
+
+    @staticmethod
+    def parse_nested_data(data: List[dict], rule: str):
+        """
+        解析嵌套json
+
+        Example::
+        rule: *data
+        data:
+        [
+         {'data':[{'ip':1,'port':1},{'ip':2,'port':2}]},
+         {'data':[{'ip':3,'port':3},{'ip':4,'port':4}]},
+        ]
+        :param data:
+        :param rule:
+        :return:
+        """
+        res = []
+        rule = rule.split('*')[-1]
+        for i in data:
+            for _r in rule.split('.'):
+                i = i.get(_r, {})
+            res.extend(i)
+        return res
+
+    def parse_list(self, rule: str, data: list) -> List[dict]:
+        """parse_list_data"""
+        if len(data) >= int(rule) and isinstance(data, list):
+            return data[int(rule)]
+        logger.warning('"%s" rules cannot be parsed correctly.', self._params.data_rule)
+        return []
+
+    def parse_dict(self, rule: str, data):
+        """parse_dict"""
+        if isinstance(data, dict):
+            return data.get(rule, [])
+        logger.warning('"%s" rules cannot be parsed correctly.', self._params.data_rule)
+        return []
