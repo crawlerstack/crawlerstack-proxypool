@@ -7,6 +7,7 @@ import logging
 
 import httpx
 from httpx import Response
+from httpx._types import HeaderTypes
 
 from crawlerstack_proxypool.aio_scrapy.middlewares import \
     DownloadMiddlewareManager
@@ -16,10 +17,12 @@ from crawlerstack_proxypool.aio_scrapy.settings import Settings
 logger = logging.getLogger(__name__)
 
 
+@dataclasses.dataclass
 class BaseDownloadHandler:
     """
     下载处理抽象类
     """
+    settings: Settings
 
     async def download(self, request: RequestProxy) -> Response:
         """
@@ -36,6 +39,17 @@ class BaseDownloadHandler:
         """
         raise NotImplementedError()
 
+    def headers(self, headers: HeaderTypes):
+        """
+        headers
+        :param headers:
+        :return:
+        """
+        ua = self.settings.user_agent
+        if headers:
+            return headers.setdefault('User-Agent', ua)
+        return {'User-Agent': ua}
+
 
 class DownloadHandler(BaseDownloadHandler):
     """
@@ -50,6 +64,7 @@ class DownloadHandler(BaseDownloadHandler):
         """
         async with httpx.AsyncClient(
                 proxies=request.proxy,
+                verify=request.verify,
         ) as client:
             return await client.request(
                 method=request.method,
@@ -59,7 +74,7 @@ class DownloadHandler(BaseDownloadHandler):
                 files=request.files,
                 json=request.files,
                 params=request.params,
-                headers=request.headers,
+                headers=self.headers(request.headers),
                 cookies=request.cookies,
                 auth=request.auth,
                 follow_redirects=request.follow_redirects,
@@ -78,12 +93,18 @@ class Downloader:
     settings: Settings
     loop: asyncio.AbstractEventLoop = dataclasses.field(default_factory=asyncio.get_running_loop)
     _queue: asyncio.Queue = dataclasses.field(init=False)
-    handler: DownloadHandler = dataclasses.field(default_factory=DownloadHandler, init=False)
+    _handler: DownloadHandler = dataclasses.field(init=False)
     _middleware: DownloadMiddlewareManager = dataclasses.field(init=False)
 
     def __post_init__(self):
         self._queue = asyncio.Queue(5)
         self._middleware = DownloadMiddlewareManager.from_settings(self.settings)
+        self._handler = DownloadHandler(self.settings)
+
+    @property
+    def handler(self):
+        """handler"""
+        return self._handler
 
     @property
     def queue(self):

@@ -8,12 +8,14 @@ from typing import Generic, TypeVar
 
 from httpx import Response
 
+from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
 from crawlerstack_proxypool.aio_scrapy.settings import Settings
 
 logger = logging.getLogger(__name__)
 
 
 class BaseExtension:
+    """Base extension"""
 
     def open_spider(self, spider):
         """open spider"""
@@ -28,7 +30,16 @@ class BaseMiddleware:
     """
 
     async def process_exception(self, exception, request, spider):
-        """process exception"""
+        """
+        process exception
+        :param exception:
+        :param request:
+        :param spider:
+        :return:
+            None: stop process exception
+            Exception: continue processing exception
+            TODO Request: Re-queue request object
+        """
 
 
 class BaseSpiderMiddleware(BaseMiddleware):
@@ -66,6 +77,7 @@ class DownloadMiddleware(BaseMiddleware):
         :param spider:
         :return:
         """
+        return request
 
     async def process_response(self, response, request, spider):
         """
@@ -74,10 +86,14 @@ class DownloadMiddleware(BaseMiddleware):
         :param request:
         :param spider:
         :return:
+            response
+            TODO: request: Re-queue request object
+        :raise Exception:
         """
+        return response
 
 
-MiddlewareType = TypeVar('MiddlewareType', bound=BaseMiddleware)
+MiddlewareType = TypeVar('MiddlewareType', bound=BaseMiddleware)  # pylint: disable=invalid-name
 
 
 async def _process_parallel(methods, *args):
@@ -126,9 +142,12 @@ class MiddlewareManager(Generic[MiddlewareType]):
         :param request:
         :param spider:
         :return:
+        :raise exception:
         """
         for method in self.methods['process_exception']:
-            await method(exception, request, spider)
+            exception = await method(exception, request, spider)
+            if not exception:
+                return
         raise exception
 
 
@@ -156,8 +175,11 @@ class DownloadMiddlewareManager(MiddlewareManager[DownloadMiddleware]):
         try:
             response = await self.process_request(request, spider)
             if isinstance(response, Response):
-                return response
-            response = await download_func(request=request, spider=spider)
+                pass
+            elif isinstance(response, RequestProxy):
+                response = await download_func(request=request, spider=spider)
+            else:
+                raise ValueError(f'{response} is not Response or RequestProxy')
         except Exception as ex:
             return await self.process_exception(ex, request, spider)
 
@@ -171,7 +193,8 @@ class DownloadMiddlewareManager(MiddlewareManager[DownloadMiddleware]):
         :return:
         """
         for method in self.methods['process_request']:
-            await method(request, spider)
+            request = await method(request, spider)
+        return request
 
     async def process_response(self, response, request, spider):
         """

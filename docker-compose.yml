@@ -1,0 +1,20 @@
+version: "3.7"
+services:
+  app:
+    build:
+      context: .
+    image: crawlerstack_proxypool:latest
+    volumes:
+      - ${PWD}/settings.local.yml:/usr/local/etc/CREWLERSTACK/proxypool/settings.yml:ro
+    ports:
+      - "5001:8000"
+    logging:
+      options:
+        max-size: "200M"
+        max-file: "3"
+    networks:
+      - app
+
+networks:
+  app:
+    external: true

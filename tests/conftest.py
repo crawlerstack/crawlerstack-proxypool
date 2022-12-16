@@ -1,4 +1,5 @@
 """Test config"""
+# pylint: disable=duplicate-code
 import asyncio
 from datetime import datetime
 
@@ -27,6 +28,12 @@ def cli_runner():
     """cli runner fixture"""
     runner = CliRunner()
     yield runner
+
+
+@pytest.fixture()
+def http_url():
+    """https url"""
+    return "https://httpbin.org/ip"
 
 
 @pytest.fixture()
@@ -107,6 +114,7 @@ def migrate(settings):
 
 @pytest.fixture()
 async def init_region(session):
+    """init region"""
     async with session.begin():
         regions = [
             RegionModel(
@@ -125,6 +133,7 @@ async def init_region(session):
 
 @pytest.fixture()
 async def init_ip(session, init_region):
+    """init ip"""
     async with session.begin():
         ips = [
             IpModel(
@@ -168,11 +177,11 @@ async def init_proxy(session, init_ip):
         session.add_all(proxies)
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture()
 async def proxypool(settings):
     """proxypool fixture"""
     _proxypool = ProxyPool(settings)
-    await _proxypool.schedule()
+    await _proxypool.init()
     yield _proxypool
     await _proxypool.stop()
 
@@ -194,3 +203,56 @@ def api_url_factory():
         return f'/api/{API_VERSION}{api}'
 
     return factory
+
+
+@pytest.fixture()
+async def init_scene(session, init_proxy):
+    """初始化 scene_proxy 表的数据"""
+    async with session.begin():
+        result = await session.scalars(select(ProxyModel))
+        objs = result.all()
+        proxy_statuses = [
+            SceneProxyModel(
+                id=1,  # noqa
+                proxy_id=objs[0].id,
+                name='http',
+                alive_count=5,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                id=2,  # noqa
+                proxy_id=objs[0].id,
+                name='https',
+                alive_count=5,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                id=3,  # noqa
+                proxy_id=objs[0].id,
+                name='alibaba',
+                alive_count=10,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                id=4,  # noqa
+                proxy_id=objs[1].id,
+                name='alibaba',
+                alive_count=1,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                id=5,  # noqa
+                proxy_id=objs[2].id,
+                name='alibaba',
+                alive_count=0,
+                update_time=datetime.now()
+            ),
+            SceneProxyModel(
+                id=6,  # noqa
+                proxy_id=objs[3].id,
+                name='alibaba',
+                alive_count=-1,
+                update_time=datetime.now()
+            ),
+        ]
+        session.add_all(proxy_statuses)

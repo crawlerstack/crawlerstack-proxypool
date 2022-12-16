@@ -8,9 +8,11 @@ from typing import Type
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from crawlerstack_proxypool.aio_scrapy.crawler import Crawler
+from crawlerstack_proxypool.aio_scrapy.settings import Settings
 from crawlerstack_proxypool.common import BaseParser
 from crawlerstack_proxypool.common.validator import ValidatedProxy
 from crawlerstack_proxypool.db import session_provider
+from crawlerstack_proxypool.middlewares import ExceptionMiddleware
 from crawlerstack_proxypool.service import ValidateSpiderService
 from crawlerstack_proxypool.spiders import ValidateSpider
 
@@ -51,8 +53,10 @@ class ValidateSpiderTask:
 
     async def start(self):
         """start task"""
-        seeds = await self.start_urls()
-        crawler = Crawler(ValidateSpider)
+        seeds = await self.start_urls()  # pylint: disable=no-value-for-parameter
+        # add download middleware
+        settings = Settings(download_middlewares=[ExceptionMiddleware])
+        crawler = Crawler(ValidateSpider, settings)
         await crawler.crawl(
             name=self.name,
             source=self.source,

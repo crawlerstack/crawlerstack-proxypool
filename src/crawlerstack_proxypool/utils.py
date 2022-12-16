@@ -30,6 +30,5 @@ def update_db_settings(settings, db_file: str = 'proxypool.db'):
         settings.DATABASE = f'sqlite+aiosqlite:///{db_file}'
 
 
-ALLOW_PROXY_SCHEMA = ('http', 'https', 'socks5')
-PROXY_SCHEMA_TYPE = Literal['http', 'https', 'socks5']
-
+ALLOW_PROXY_SCHEMA = ('http', 'https', 'socks5')  # pylint: disable=invalid-name
+PROXY_SCHEMA_TYPE = Literal['http', 'https', 'socks5']  # pylint: disable=invalid-name

@@ -1,7 +1,7 @@
 """service"""
 import dataclasses
 import logging
-from typing import AsyncIterable, Iterable
+from typing import AsyncIterable
 
 from httpx import URL
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,8 @@ from crawlerstack_proxypool.models import SceneProxyModel
 from crawlerstack_proxypool.repositories import (IpRepository, ProxyRepository,
                                                  SceneProxyRepository)
 from crawlerstack_proxypool.repositories.base import BaseRepository
-from crawlerstack_proxypool.schema import ValidatedProxy, SceneIpProxy, SceneIpProxyStatus
+from crawlerstack_proxypool.schema import (SceneIpProxy, SceneIpProxyStatus,
+                                           SceneProxy, ValidatedProxy)
 from crawlerstack_proxypool.signals import (start_fetch_proxy,
                                             start_validate_proxy)
 
@@ -97,10 +98,12 @@ class SceneProxyService(BaseService, CRUDMixin):
 
     @property
     def repository(self) -> SceneProxyRepository:
+        """repository"""
         return SceneProxyRepository(self._session)
 
     @property
     def ip_repo(self):
+        """ip repo"""
         if not self._ip_repo:
             self._ip_repo = IpRepository(self._session)
         return self._ip_repo
@@ -143,6 +146,7 @@ class SceneProxyService(BaseService, CRUDMixin):
             port: int | None = None,
             ip: str | None = None,
     ) -> list[SceneIpProxy]:
+        """get with region"""
         objs = await self.repository.get_proxy_with_region(
             limit=limit,
             offset=offset,
@@ -163,7 +167,8 @@ class SceneProxyService(BaseService, CRUDMixin):
             ))
         return value_objects
 
-    async def update_proxy(self, obj_in: SceneIpProxyStatus) -> SceneProxyModel | None:
+    async def update_proxy(self, obj_in: SceneIpProxyStatus) -> SceneProxy | None:
+        """update proxy"""
         return await self.repository.update_proxy(obj_in)
 
     async def init_proxy(self, proxy: ValidatedProxy) -> list[SceneProxyModel]:
@@ -202,7 +207,7 @@ class SceneProxyService(BaseService, CRUDMixin):
                 await self.delete(scene_proxy.id)
         return models
 
-    async def decrease(self, scene_proxy: SceneIpProxy) -> SceneProxyModel | None:
+    async def decrease(self, scene_proxy: SceneIpProxy) -> SceneProxy | None:
         """
         请求时的异常处理，此时应该对 proxy 减分。
 

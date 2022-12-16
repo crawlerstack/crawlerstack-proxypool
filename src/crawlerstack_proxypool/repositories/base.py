@@ -109,7 +109,7 @@ class BaseRepository(Generic[ModelT]):
         :return:
         """
         obj = self.model(**kwargs)
-        self.session.add(obj)
+        self.session.add(obj)  # pylint: disable=no-member
         await self.session.flush()
         return obj
 

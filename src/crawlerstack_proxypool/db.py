@@ -12,7 +12,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import (AsyncEngine, AsyncSession,
                                     AsyncSessionTransaction,
                                     async_scoped_session, create_async_engine)
-from sqlalchemy.future import Connection, Engine
+from sqlalchemy.future import Engine
 from sqlalchemy.orm import sessionmaker
 
 from crawlerstack_proxypool.config import settings as default_settings
@@ -127,9 +127,8 @@ class SessionProvider:
         :return:
         """
         self._session: AsyncSession = self._db.session
-        logging.warning('Session: %s', self._session)
         if self._auto_commit:
-            self._trans = AsyncSessionTransaction(self._session)
+            self._trans = AsyncSessionTransaction(self._session)  # pylint: disable=attribute-defined-outside-init
             await self._trans.__aenter__()
 
         return self._session
@@ -216,8 +215,7 @@ def session_provider(
     """
     if callable(func):
         return SessionProvider(auto_commit)(func)
-    else:
-        return SessionProvider(auto_commit)
+    return SessionProvider(auto_commit)
 
 
 @event.listens_for(Engine, "connect")

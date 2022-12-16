@@ -25,6 +25,7 @@ class Crawler:
 
     @property
     def engine(self):
+        """engine"""
         return self._engine
 
     async def crawl(self, **kwargs):
@@ -33,6 +34,7 @@ class Crawler:
         :param kwargs:
         :return:
         """
+        kwargs.setdefault('settings', self.settings)
         obj = self.spider_kls(**kwargs)  # noqa
         await self.engine.open_spider(obj)
         await self.engine.start()

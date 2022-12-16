@@ -1,3 +1,4 @@
+"""utils"""
 import functools
 from collections.abc import AsyncGenerator, Callable
 from typing import Type, TypeVar

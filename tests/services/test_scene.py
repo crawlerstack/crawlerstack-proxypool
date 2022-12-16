@@ -30,6 +30,7 @@ async def scene_service(database):
 )
 @pytest.mark.asyncio
 async def test_update_with_pk(init_scene, service_factory, session, pk, name, alive_count, total):
+    """test update with pk"""
     async with service_factory(SceneProxyService) as service:
         res = await service.update_with_pk(pk, -1)
         if alive_count:
@@ -57,6 +58,7 @@ async def test_update_with_pk(init_scene, service_factory, session, pk, name, al
 )
 @pytest.mark.asyncio
 async def test_init_proxy(session, init_scene, service_factory, ip, schema, port, dest, alive, exist, total):
+    """test init proxy"""
     async with service_factory(SceneProxyService) as service:
         obj_in = ValidatedProxy(
             url=URL(f'{schema}://{ip}:{port}'),
@@ -83,7 +85,7 @@ async def test_init_proxy(session, init_scene, service_factory, ip, schema, port
 @pytest.mark.asyncio
 async def test_decrease(session, scene_service,  init_scene, url, dest, expect_value):
     """test decrease"""
-    obj_in = SceneIpProxy(url=URL(url), name=dest)
+    obj_in = SceneIpProxy(url=url, name=dest)
     if inspect.isclass(expect_value) and issubclass(expect_value, Exception):
         with pytest.raises(expect_value):
             obj = await scene_service.decrease(obj_in)

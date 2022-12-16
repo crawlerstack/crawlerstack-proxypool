@@ -10,6 +10,7 @@ from collections.abc import AsyncGenerator, AsyncIterator, Iterator
 from httpx import URL, Response
 
 from crawlerstack_proxypool.aio_scrapy.req_resp import RequestProxy
+from crawlerstack_proxypool.aio_scrapy.settings import Settings
 from crawlerstack_proxypool.signals import spider_closed, spider_opened
 
 
@@ -23,10 +24,12 @@ class Spider(metaclass=abc.ABCMeta):
             *,
             name: str,
             start_urls: list[str] | Iterator[str] | AsyncIterator[str],
+            settings: Settings,
             **kwargs,
     ):
         self.name = name
         self.start_urls = start_urls
+        self.settings = settings
         for k, v in kwargs.items():
             setattr(self, k, v)
 

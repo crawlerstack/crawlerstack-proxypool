@@ -9,6 +9,7 @@ from crawlerstack_proxypool.db import Database
 from crawlerstack_proxypool.exceptions import CrawlerStackProxyPoolError
 from crawlerstack_proxypool.log import configure_logging
 from crawlerstack_proxypool.rest_api import RestAPI
+from crawlerstack_proxypool.tasks.scheduler import Scheduler
 
 HANDLED_SIGNALS = (
     system_signal.SIGINT,  # Unix signal 2. Sent by Ctrl+C.
@@ -38,6 +39,7 @@ class ProxyPool:
 
         self.should_exit = False
         self.force_exit = True
+        self.scheduler = Scheduler()
 
     @property
     def db(self):
@@ -54,19 +56,19 @@ class ProxyPool:
         """rest api"""
         return self._rest_api
 
-    async def schedule(self):
+    async def init(self):
         """调度任务"""
         self.rest_api.init()
+        await self.rest_api.start()
+        self.scheduler.load_task()
+        self.install_signal_handlers()
 
     async def start(self):
         """Run"""
         logger.debug('Start proxypool server .')
         try:
-            await self.schedule()
-
-            await self.rest_api.start()
-
-            self.install_signal_handlers()
+            await self.init()
+            self.scheduler.start()
             while not self.should_exit:
                 # 暂时不做任何处理。
                 await asyncio.sleep(0.001)

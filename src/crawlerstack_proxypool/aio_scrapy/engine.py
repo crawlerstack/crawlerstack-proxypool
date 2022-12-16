@@ -118,7 +118,7 @@ class ExecuteEngine:
         """
         if self._start_requests is not None and not self.should_pass() and not self._start_requests.ag_running:
             try:
-                request = await self._start_requests.__anext__()
+                request = await self._start_requests.__anext__()  # pylint: disable=unnecessary-dunder-call
             except StopAsyncIteration:
                 self._start_requests = None
             else:

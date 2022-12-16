@@ -1,3 +1,4 @@
+"""parser"""
 import abc
 import dataclasses
 from typing import Generic, Type, TypeVar
@@ -15,7 +16,7 @@ class ParserParams:
     _ = dataclasses.KW_ONLY
 
 
-ParserParamsType = TypeVar('ParserParamsType', bound=ParserParams)
+ParserParamsType = TypeVar('ParserParamsType', bound=ParserParams)  # pylint: disable=invalid-name
 
 
 class BaseParser(Generic[ParserParamsType]):
@@ -70,4 +71,4 @@ class BaseParser(Generic[ParserParamsType]):
         raise NotImplementedError()
 
 
-ParserType = TypeVar('ParserType', bound=BaseParser)
+ParserType = TypeVar('ParserType', bound=BaseParser)  # pylint: disable=invalid-name

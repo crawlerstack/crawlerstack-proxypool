@@ -6,7 +6,7 @@ from httpx import URL
 from httpx._client import UseClientDefault
 from httpx._types import (AuthTypes, CookieTypes, HeaderTypes, ProxiesTypes,
                           QueryParamTypes, RequestContent, RequestData,
-                          RequestFiles)
+                          RequestFiles, VerifyTypes)
 
 
 @dataclasses.dataclass(unsafe_hash=True, eq=False)
@@ -19,6 +19,8 @@ class RequestProxy:
     _ = dataclasses.KW_ONLY
     params: QueryParamTypes = None
     headers: HeaderTypes = None
+    user_agent: str = None
+    verify: VerifyTypes = True
     cookies: CookieTypes = None
     content: RequestContent = None
     data: RequestData = None

@@ -74,6 +74,15 @@ def init_logging_config() -> Dict:
                 'maxBytes': 1024 * 1024 * 1024 * 200,  # 200M
                 'backupCount': '5',
                 'encoding': 'utf-8'
+            },
+            'apscheduler_file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'level': 'DEBUG',
+                'formatter': verbose_formatter(settings.VERBOSE),
+                'filename': os.path.join(settings.LOGPATH, 'apscheduler.log'),
+                'maxBytes': 1024 * 1024 * 1024 * 200,  # 200M
+                'backupCount': '5',
+                'encoding': 'utf-8'
             }
         },
         "loggers": {
@@ -89,7 +98,8 @@ def init_logging_config() -> Dict:
             #     'propagate': False
             # },
             # 'amqp.connection.Connection.heartbeat_tick': {'level': 'INFO'}
-            'aiosqlite': {'level': 'INFO'}
+            'aiosqlite': {'level': 'INFO'},
+            'apscheduler': {'level': 'INFO', 'handlers': ['apscheduler_file'], 'propagate': False},
         }
     }
     return default_logging

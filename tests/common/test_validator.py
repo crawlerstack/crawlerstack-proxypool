@@ -1,3 +1,4 @@
+"""test validator"""
 import asyncio
 
 import pytest
@@ -7,13 +8,14 @@ from crawlerstack_proxypool.aio_scrapy.downloader import DownloadHandler
 from crawlerstack_proxypool.common import AnonymousValidator, KeywordValidator
 from crawlerstack_proxypool.schema import ValidatedProxy
 from crawlerstack_proxypool.signals import spider_closed
-from crawlerstack_proxypool.spiders import Spider
 
 
 class TestKeywordValidator:
+    """test keyword validator"""
 
     @pytest.fixture
     def validator(self, mocker):
+        """validator"""
         _checker = KeywordValidator.from_params(mocker.MagicMock())
         yield _checker
 
@@ -28,16 +30,18 @@ class TestKeywordValidator:
     )
     @pytest.mark.asyncio
     async def test__check(self, mocker, validator, attr, text: str, expect_value):
+        """test check"""
         for k, v in attr.items():
             mocker.patch.object(validator.params, k, v)
         mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
         mocker.patch.object(Response, 'request', new_callable=mocker.PropertyMock, return_value=mocker.MagicMock())
         checked_proxy_mocker = mocker.patch.object(ValidatedProxy, '__init__', return_value=None)
-        res = await validator._check(Response(status_code=200))
+        await validator._check(Response(status_code=200))  # pylint: disable=protected-access
         assert checked_proxy_mocker.call_args.kwargs.get('alive') == expect_value
 
 
 class TestAnonymousValidator:
+    """test anonymous validator"""
     @pytest.fixture
     def validator(self, mocker):
         """checker fixture"""
@@ -71,10 +75,10 @@ class TestAnonymousValidator:
         """test_refresh_internet_ip"""
         get_internet_ip_mocker = mocker.patch.object(validator, 'update_internet_ip')
         mocker.patch('random.randint', return_value=0.1)
-        validator._running = True
+        validator._running = True  # pylint: disable=protected-access
         task = event_loop.create_task(validator.refresh_internet_ip())
         await asyncio.sleep(0)
-        validator._running = False
+        validator._running = False  # pylint: disable=protected-access
         await asyncio.sleep(0.01)
         await task
         assert get_internet_ip_mocker.called_once
@@ -90,10 +94,10 @@ class TestAnonymousValidator:
     )
     @pytest.mark.asyncio
     async def test__check(self, mocker, first, internet_ip, proxy, resp, validator, expect_value):
-        """"""
+        """test check"""
         if first:
             with pytest.raises(ValueError):
-                await validator._check(mocker.MagicMock())
+                await validator._check(mocker.MagicMock())  # pylint: disable=protected-access
         else:
             mocker.patch.object(
                 AnonymousValidator,
@@ -106,17 +110,16 @@ class TestAnonymousValidator:
             response.request.extensions = {'proxy': URL(proxy)}
             response.text = resp
 
-            res = await validator._check(response)
+            res = await validator._check(response)  # pylint: disable=protected-access
             assert res.alive == expect_value
 
     @pytest.mark.asyncio
     async def test_open_and_close_spider(self, mocker, validator):
+        """test open and close spider"""
         refresh_mocker = mocker.patch.object(AnonymousValidator, 'update_internet_ip')
         await validator.open_spider()
         await asyncio.sleep(0)
         refresh_mocker.assert_called_once()
         await validator.close_spider()
         await asyncio.sleep(0)
-        assert validator._refresh_ip_task.cancelled()
-
-
+        assert validator._refresh_ip_task.cancelled()  # pylint: disable=protected-access

@@ -1,9 +1,11 @@
+"""test extractor"""
+import logging
+
 import pytest
 from httpx import Response
-from lxml import etree, html
+from lxml import html
 
 from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
-                                                     HtmlExtractorParams,
                                                      JsonExtractor,
                                                      proxy_check)
 
@@ -18,14 +20,17 @@ from crawlerstack_proxypool.common.extractor import (HtmlExtractor,
     ]
 )
 def test_proxy_check(ip, port, value):
+    """test proxy check"""
     res = proxy_check(ip, port)
     assert res == value
 
 
 class TestHtmlExtractor:
+    """test html extractor"""
 
     @pytest.fixture()
     def extractor(self, mocker):
+        """extractor"""
         obj = HtmlExtractor.from_params(mocker.MagicMock())
         return obj
 
@@ -37,8 +42,8 @@ class TestHtmlExtractor:
             ({}, '<tr><td>127.0.0.1</td></tr>', None),
         ]
     )
-    @pytest.mark.asyncio
     def test_parse_row(self, mocker, extractor, attr, text, value):
+        """test parse row"""
         for k, v in attr.items():
             mocker.patch.object(extractor.params, k, v)
         ele = html.fragment_fromstring(text)
@@ -67,6 +72,7 @@ class TestHtmlExtractor:
     )
     @pytest.mark.asyncio
     async def test_parse(self, mocker, extractor, attr, text, value):
+        """test parse"""
         for k, v in attr.items():
             mocker.patch.object(extractor.params, k, v)
         mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
@@ -84,7 +90,73 @@ class TestHtmlExtractor:
 )
 @pytest.mark.asyncio
 async def test_json_extractor(mocker, text, value):
+    """test json extractor"""
     extractor = JsonExtractor.from_params(mocker.MagicMock())
     mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
     res = await extractor.parse(Response(status_code=200))
     assert len(res) == value
+
+
+@pytest.mark.parametrize(
+    'infos,rule',
+    [
+        ([
+             {
+                 'a': {'a': [{'a': 1}]}
+             },
+             {
+                 'a': {'a': [{'a': 1}]}
+             }
+         ], '*a.a'),
+        ([
+             {'a': [{'a': 1}]},
+             {'a': [{'a': 1}]},
+         ], '*a')
+    ]
+)
+def test_parse_nested_data(mocker, infos, rule):
+    """test parse_nested_data"""
+    json_extractor = JsonExtractor(mocker.MagicMock())
+    res = json_extractor.parse_nested_data(infos, rule)
+    assert res == [{'a': 1}, {'a': 1}]
+
+
+@pytest.mark.parametrize(
+    'infos,rule',
+    [
+        ([1, 2, 3], '1'),
+        ([1, 2, 3], '4'),
+        ('test', '1')
+    ]
+)
+def test_parse_list(mocker, infos, rule, caplog):
+    """test_parse_list"""
+    json_extractor = JsonExtractor.from_params(mocker.MagicMock())
+    if len(infos) >= int(rule) and isinstance(infos, list):
+        res = json_extractor.parse_list(rule, infos)
+        assert res == 2
+    else:
+        caplog.set_level(logging.WARNING)
+        res = json_extractor.parse_list(rule, infos)
+        assert res == []
+        assert 'cannot' in caplog.text
+
+
+@pytest.mark.parametrize(
+    'infos,rule',
+    [
+        ({'a': 1}, 'a'),
+        ('a', 'a')
+    ]
+)
+def test_parse_dict(mocker, infos, rule, caplog):
+    """test_parse_dict"""
+    json_extractor = JsonExtractor.from_params(mocker.MagicMock())
+    if isinstance(infos, dict):
+        res = json_extractor.parse_dict(rule, infos)
+        assert res == 1
+    else:
+        caplog.set_level(logging.WARNING)
+        res = json_extractor.parse_dict(rule, infos)
+        assert res == []
+        assert 'cannot' in caplog.text
