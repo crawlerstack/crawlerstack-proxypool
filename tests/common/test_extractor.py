@@ -1,4 +1,6 @@
 """test extractor"""
+import logging
+
 import pytest
 from httpx import Response
 from lxml import html
@@ -93,3 +95,68 @@ async def test_json_extractor(mocker, text, value):
     mocker.patch.object(Response, 'text', new_callable=mocker.PropertyMock, return_value=text)
     res = await extractor.parse(Response(status_code=200))
     assert len(res) == value
+
+
+@pytest.mark.parametrize(
+    'infos,rule',
+    [
+        ([
+             {
+                 'a': {'a': [{'a': 1}]}
+             },
+             {
+                 'a': {'a': [{'a': 1}]}
+             }
+         ], '*a.a'),
+        ([
+             {'a': [{'a': 1}]},
+             {'a': [{'a': 1}]},
+         ], '*a')
+    ]
+)
+def test_parse_nested_data(mocker, infos, rule):
+    """test parse_nested_data"""
+    json_extractor = JsonExtractor(mocker.MagicMock())
+    res = json_extractor.parse_nested_data(infos, rule)
+    assert res == [{'a': 1}, {'a': 1}]
+
+
+@pytest.mark.parametrize(
+    'infos,rule',
+    [
+        ([1, 2, 3], '1'),
+        ([1, 2, 3], '4'),
+        ('test', '1')
+    ]
+)
+def test_parse_list(mocker, infos, rule, caplog):
+    """test_parse_list"""
+    json_extractor = JsonExtractor.from_params(mocker.MagicMock())
+    if len(infos) >= int(rule) and isinstance(infos, list):
+        res = json_extractor.parse_list(rule, infos)
+        assert res == 2
+    else:
+        caplog.set_level(logging.WARNING)
+        res = json_extractor.parse_list(rule, infos)
+        assert res == []
+        assert 'cannot' in caplog.text
+
+
+@pytest.mark.parametrize(
+    'infos,rule',
+    [
+        ({'a': 1}, 'a'),
+        ('a', 'a')
+    ]
+)
+def test_parse_dict(mocker, infos, rule, caplog):
+    """test_parse_dict"""
+    json_extractor = JsonExtractor.from_params(mocker.MagicMock())
+    if isinstance(infos, dict):
+        res = json_extractor.parse_dict(rule, infos)
+        assert res == 1
+    else:
+        caplog.set_level(logging.WARNING)
+        res = json_extractor.parse_dict(rule, infos)
+        assert res == []
+        assert 'cannot' in caplog.text

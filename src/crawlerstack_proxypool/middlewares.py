@@ -10,12 +10,19 @@ logger = logging.getLogger(__name__)
 
 class ExceptionMiddleware(DownloadMiddleware):
     """Exception middleware"""
+    exception_category = {
+        'httpx.ConnectError': httpx.ConnectError,
+        'httpx.ConnectTimeout': httpx.ConnectTimeout,
+        'httpx.ReadTimeout': httpx.ReadTimeout,
+        'httpx.RemoteProtocolError': httpx.RemoteProtocolError,
+        'httpx.ReadError': httpx.ReadError,
+        'httpx.ProxyError': httpx.ProxyError
+    }
+
     async def process_exception(self, exception, request, spider):
         """process exception"""
-        if isinstance(exception, httpx.ConnectError):
-            logging.warning('httpx.ConnectError, url: %s, proxy: %s', request.url, request.proxy)
-            return
-        elif isinstance(exception, httpx.ProxyError):
-            logging.warning('httpx.ProxyError, url: %s, proxy: %s', request.url, request.proxy)
-            return
+        for k, v in self.exception_category.items():
+            if isinstance(exception, v):
+                logging.warning('%s, url: %s, proxy: %s', k, request.url, request.proxy)
+                return
         return exception
